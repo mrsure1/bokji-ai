@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="glass">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bokji-AI 5대 디자인 트렌드 시안 쇼케이스 데모</title>
+    
+    <!-- 구글 폰트 로드: 테마별로 다른 타이포그래피 적용을 위해 다양한 폰트 로드 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=Share+Tech+Mono&family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- 폰트어썸 아이콘 로드 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* ==========================================
+           디자인 시스템 토큰 (CSS Variables) 및 테마 정의
+           ========================================== */
+        
+        :root {
+            /* 1. 글래스모피즘 & 오로라 테마 (기본 테마) */
+            --font-main: 'Outfit', 'Noto Sans KR', sans-serif;
+            --bg-gradient: linear-gradient(135deg, #0f172a, #1e1b4b, #311042);
+            --container-bg: rgba(255, 255, 255, 0.07);
+            --container-border: 1px solid rgba(255, 255, 255, 0.15);
+            --container-blur: blur(16px);
+            --shadow-primary: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-primary: #a855f7; /* 바이올렛 */
+            --accent-secondary: #06b6d4; /* 시안 */
+            --chat-bubble-user: rgba(168, 85, 247, 0.3);
+            --chat-bubble-ai: rgba(255, 255, 255, 0.1);
+            --card-radius: 20px;
+            --font-weight-bold: 700;
+        }
+
+        [data-theme="brutal"] {
+            /* 2. 네오 브루탈리즘 테마 */
+            --font-main: 'Noto Sans KR', sans-serif;
+            --bg-gradient: linear-gradient(135deg, #fef08a, #fca5a5); /* 파스텔 옐로우 & 레드 */
+            --container-bg: #ffffff;
+            --container-border: 3px solid #000000;
+            --container-blur: none;
+            --shadow-primary: 6px 6px 0px #000000;
+            --text-color: #000000;
+            --text-muted: #4b5563;
+            --accent-primary: #f43f5e; /* 강렬한 로즈 */
+            --accent-secondary: #10b981; /* 에메랄드 */
+            --chat-bubble-user: #fef08a; /* 노랑 */
+            --chat-bubble-ai: #e0f2fe; /* 하늘색 */
+            --card-radius: 0px; /* 각진 카드 */
+            --font-weight-bold: 900;
+        }
+
+        [data-theme="minimal-dark"] {
+            /* 3. 슬릭 미니멀 다크 테마 */
+            --font-main: 'Inter', 'Noto Sans KR', sans-serif;
+            --bg-gradient: none;
+            --bg-color-fallback: #090d16;
+            --container-bg: #111827;
+            --container-border: 1px solid #1f2937;
+            --container-blur: none;
+            --shadow-primary: 0 4px 20px rgba(0, 0, 0, 0.6);
+            --text-color: #f3f4f6;
+            --text-muted: #6b7280;
+            --accent-primary: #10b981; /* 미니멀 민트 */
+            --accent-secondary: #3b82f6; /* 소프트 블루 */
+            --chat-bubble-user: #1f2937;
+            --chat-bubble-ai: #111827;
+            --card-radius: 12px;
+            --font-weight-bold: 500;
+        }
+
+        [data-theme="bento-clay"] {
+            /* 4. 벤토 그리드 & 클레이모피즘 테마 */
+            --font-main: 'Outfit', 'Noto Sans KR', sans-serif;
+            --bg-gradient: linear-gradient(135deg, #e0f2fe, #f0fdf4); /* 편안한 스카이 & 민트 */
+            --container-bg: #ffffff;
+            --container-border: 1px solid rgba(255, 255, 255, 0.8);
+            --container-blur: none;
+            /* 3D 부드러운 섀도우 효과 */
+            --shadow-primary: 8px 8px 20px rgba(163, 191, 222, 0.4), -8px -8px 20px rgba(255, 255, 255, 0.8);
+            --text-color: #1e293b;
+            --text-muted: #64748b;
+            --accent-primary: #3b82f6; /* 블루 */
+            --accent-secondary: #f97316; /* 오렌지 */
+            --chat-bubble-user: #dbeafe;
+            --chat-bubble-ai: #f1f5f9;
+            --card-radius: 28px; /* 극도로 둥근 모서리 */
+            --font-weight-bold: 600;
+        }
+
+        [data-theme="cyberpunk"] {
+            /* 5. 사이버펑크 네온 테마 */
+            --font-main: 'Share Tech Mono', monospace;
+            --bg-gradient: radial-gradient(circle at center, #05050d 0%, #000000 100%);
+            --container-bg: rgba(5, 5, 15, 0.85);
+            --container-border: 2px solid #ff007f; /* 네온 핑크 테두리 */
+            --container-blur: none;
+            /* 네온 광원 그림자 효과 */
+            --shadow-primary: 0 0 15px rgba(255, 0, 127, 0.4), inset 0 0 10px rgba(255, 0, 127, 0.2);
+            --text-color: #00ffcc; /* 사이언 형광색 */
+            --text-muted: #7000ff; /* 진한 퍼플 */
+            --accent-primary: #ff007f; /* 네온 핑크 */
+            --accent-secondary: #00ffcc; /* 사이언 */
+            --chat-bubble-user: rgba(255, 0, 127, 0.15);
+            --chat-bubble-ai: rgba(0, 255, 204, 0.05);
+            --card-radius: 4px; /* 테크니컬한 각진 모서리 */
+            --font-weight-bold: 400;
+        }
+
+        /* ==========================================
+           기본 레이아웃 및 공통 스타일 설정
+           ========================================== */
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: var(--font-main);
+            background: var(--bg-gradient);
+            background-color: var(--bg-color-fallback, transparent);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* 사이버펑크 격자 백그라운드 효과 */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+            z-index: -1;
+            pointer-events: none;
+            opacity: 0;
+        }
+        [data-theme="cyberpunk"]::before {
+            opacity: 1;
+            background-image: linear-gradient(rgba(0, 255, 204, 0.05) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(0, 255, 204, 0.05) 1px, transparent 1px);
+        }
+
+        /* ==========================================
+           디자인 테마 스위처 컴포넌트
+           ========================================== */
+        
+        .theme-switcher-bar {
+            width: 100%;
+            max-width: 1200px;
+            background: var(--container-bg);
+            border: var(--container-border);
+            backdrop-filter: var(--container-blur);
+            box-shadow: var(--shadow-primary);
+            border-radius: var(--card-radius);
+            padding: 15px 25px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            z-index: 10;
+        }
+
+        .switcher-title {
+            font-size: 1.1rem;
+            font-weight: var(--font-weight-bold);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .switcher-title i {
+            color: var(--accent-primary);
+            animation: pulse 2s infinite;
+        }
+
+        .theme-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .theme-btn {
+            padding: 8px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-color);
+            border-radius: 30px;
+            cursor: pointer;
+            font-family: var(--font-main);
+            font-weight: 500;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        [data-theme="brutal"] .theme-btn {
+            border: 2px solid #000;
+            border-radius: 0;
+            box-shadow: 2px 2px 0px #000;
+        }
+        [data-theme="bento-clay"] .theme-btn {
+            border-radius: 16px;
+            box-shadow: 3px 3px 6px rgba(163, 191, 222, 0.3);
+            background: #ffffff;
+            color: #1e293b;
+        }
+
+        .theme-btn:hover {
+            transform: translateY(-2px);
+            background: var(--accent-primary);
+            color: #ffffff;
+            border-color: transparent;
+        }
+
+        .theme-btn.active {
+            background: var(--accent-primary);
+            color: #ffffff;
+            border-color: transparent;
+            font-weight: var(--font-weight-bold);
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
+        }
+        [data-theme="brutal"] .theme-btn.active {
+            background: var(--accent-primary);
+            box-shadow: 4px 4px 0px #000;
+        }
+        [data-theme="cyberpunk"] .theme-btn.active {
+            background: transparent;
+            border: 2px solid var(--accent-secondary);
+            color: var(--accent-secondary);
+            box-shadow: 0 0 10px var(--accent-secondary);
+            text-shadow: 0 0 5px var(--accent-secondary);
+        }
+
+        /* ==========================================
+           테마 설명 박스
+           ========================================== */
+        
+        .theme-description-panel {
+            width: 100%;
+            max-width: 1200px;
+            background: var(--container-bg);
+            border: var(--container-border);
+            backdrop-filter: var(--container-blur);
+            box-shadow: var(--shadow-primary);
+            border-radius: var(--card-radius);
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .theme-description-panel h3 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: var(--accent-secondary);
+            font-weight: var(--font-weight-bold);
+        }
+
+        .theme-description-panel p {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: var(--text-color);
+            opacity: 0.9;
+        }
+
+        .theme-tag {
+            display: inline-block;
+            padding: 3px 10px;
+            background: var(--accent-primary);
+            color: white;
+            font-size: 0.75rem;
+            border-radius: 12px;
+            margin-right: 5px;
+            font-weight: bold;
+        }
+        [data-theme="brutal"] .theme-tag {
+            border: 1px solid #000;
+            border-radius: 0;
+            color: #000;
+        }
+
+        /* ==========================================
+           대시보드 메인 레이아웃 Grid
+           ========================================== */
+        
+        .dashboard-container {
+            width: 100%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 25px;
+            flex-grow: 1;
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ==========================================
+           좌측: AI 챗봇 컴포넌트
+           ========================================== */
+        
+        .chat-section {
+            background: var(--container-bg);
+            border: var(--container-border);
+            backdrop-filter: var(--container-blur);
+            box-shadow: var(--shadow-primary);
+            border-radius: var(--card-radius);
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .chat-header {
+            padding: 20px;
+            border-bottom: var(--container-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chat-bot-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .bot-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+            position: relative;
+        }
+
+        .bot-status-dot {
+            width: 12px;
+            height: 12px;
+            background: #10b981;
+            border: 2px solid white;
+            border-radius: 50%;
+            position: absolute;
+            bottom: 0;
+            right: 0;
+        }
+
+        [data-theme="brutal"] .bot-avatar {
+            border: 2px solid #000;
+            border-radius: 0;
+            box-shadow: 3px 3px 0px #000;
+        }
+        [data-theme="brutal"] .bot-status-dot {
+            border: 1px solid #000;
+            background: #10b981;
+        }
+
+        .bot-name {
+            font-size: 1.1rem;
+            font-weight: var(--font-weight-bold);
+        }
+
+        .bot-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* 채팅 메시지 영역 */
+        .chat-messages {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message-bubble {
+            max-width: 75%;
+            padding: 14px 18px;
+            border-radius: 18px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            position: relative;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        /* 챗봇 테마별 말풍선 꼬리 디자인 보완 */
+        .message-bubble.user {
+            align-self: flex-end;
+            background: var(--chat-bubble-user);
+            color: var(--text-color);
+            border-bottom-right-radius: 4px;
+            border: var(--container-border);
+        }
+
+        .message-bubble.ai {
+            align-self: flex-start;
+            background: var(--chat-bubble-ai);
+            color: var(--text-color);
+            border-bottom-left-radius: 4px;
+            border: var(--container-border);
+        }
+
+        [data-theme="brutal"] .message-bubble {
+            border: 2px solid #000 !important;
+            border-radius: 0 !important;
+            box-shadow: 4px 4px 0px #000;
+        }
+
+        [data-theme="bento-clay"] .message-bubble {
+            border-radius: 20px !important;
+            box-shadow: 3px 3px 6px rgba(163, 191, 222, 0.2);
+        }
+
+        [data-theme="cyberpunk"] .message-bubble {
+            border: 1px solid var(--accent-secondary) !important;
+            box-shadow: 0 0 8px rgba(0, 255, 204, 0.2);
+        }
+
+        .message-time {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 5px;
+            display: block;
+            text-align: right;
+        }
+
+        /* 챗 입력창 */
+        .chat-input-bar {
+            padding: 15px 20px;
+            border-top: var(--container-border);
+            display: flex;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-input {
+            flex-grow: 1;
+            padding: 12px 18px;
+            border: var(--container-border);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-color);
+            border-radius: 30px;
+            font-family: var(--font-main);
+            outline: none;
+            font-size: 0.95rem;
+        }
+
+        .chat-input:focus {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--accent-primary);
+        }
+
+        [data-theme="brutal"] .chat-input {
+            border: 2px solid #000;
+            border-radius: 0;
+            background: #ffffff;
+            color: #000;
+        }
+        [data-theme="bento-clay"] .chat-input {
+            border-radius: 18px;
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+        [data-theme="cyberpunk"] .chat-input {
+            border: 1px solid var(--accent-primary);
+            background: #000;
+            color: var(--accent-secondary);
+            text-shadow: 0 0 5px var(--accent-secondary);
+        }
+
+        .send-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            box-shadow: 0 4px 10px rgba(168, 85, 247, 0.3);
+        }
+
+        .send-btn:hover {
+            transform: scale(1.08);
+            background: var(--accent-secondary);
+        }
+
+        [data-theme="brutal"] .send-btn {
+            border: 2px solid #000;
+            border-radius: 0;
+            box-shadow: 3px 3px 0px #000;
+            color: #000;
+        }
+        [data-theme="bento-clay"] .send-btn {
+            border-radius: 16px;
+            box-shadow: 3px 3px 6px rgba(163, 191, 222, 0.3);
+        }
+        [data-theme="cyberpunk"] .send-btn {
+            border: 1px solid var(--accent-primary);
+            background: transparent;
+            color: var(--accent-primary);
+            box-shadow: 0 0 10px var(--accent-primary);
+        }
+
+        /* ==========================================
+           우측: 복지 맞춤형 체크리스트 컴포넌트
+           ========================================== */
+        
+        .checklist-section {
+            background: var(--container-bg);
+            border: var(--container-border);
+            backdrop-filter: var(--container-blur);
+            box-shadow: var(--shadow-primary);
+            border-radius: var(--card-radius);
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            height: 600px;
+        }
+
+        .checklist-header {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .checklist-title {
+            font-size: 1.2rem;
+            font-weight: var(--font-weight-bold);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checklist-title i {
+            color: var(--accent-secondary);
+        }
+
+        /* 진행률 바 */
+        .progress-container {
+            margin-top: 5px;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .progress-track {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        [data-theme="brutal"] .progress-track {
+            border: 2px solid #000;
+            border-radius: 0;
+            height: 12px;
+            background: #ffffff;
+        }
+        [data-theme="bento-clay"] .progress-track {
+            background: #e2e8f0;
+            height: 10px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 40%; /* 초기값 */
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 10px;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        [data-theme="brutal"] .progress-bar {
+            border-radius: 0;
+            background: var(--accent-primary);
+        }
+
+        /* 리스트 아이템 */
+        .checklist-items {
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-right: 5px;
+        }
+
+        .checklist-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: calc(var(--card-radius) - 6px);
+            padding: 16px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .checklist-card:hover {
+            transform: translateX(4px);
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        [data-theme="brutal"] .checklist-card {
+            background: #ffffff;
+            border: 2px solid #000;
+            border-radius: 0;
+            box-shadow: 3px 3px 0px #000;
+        }
+        [data-theme="brutal"] .checklist-card:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 5px 5px 0px #000;
+        }
+
+        [data-theme="bento-clay"] .checklist-card {
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: inset 2px 2px 5px rgba(255, 255, 255, 0.7), 4px 4px 10px rgba(163, 191, 222, 0.2);
+            border: none;
+        }
+        [data-theme="bento-clay"] .checklist-card:hover {
+            transform: translateY(-2px);
+            box-shadow: inset 2px 2px 5px rgba(255, 255, 255, 0.7), 6px 6px 15px rgba(163, 191, 222, 0.3);
+        }
+
+        [data-theme="cyberpunk"] .checklist-card {
+            border: 1px solid rgba(0, 255, 204, 0.3);
+            background: rgba(5, 5, 15, 0.6);
+        }
+        [data-theme="cyberpunk"] .checklist-card:hover {
+            border-color: var(--accent-secondary);
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
+        }
+
+        /* 커스텀 체크박스 */
+        .checkbox-wrapper {
+            position: relative;
+            width: 20px;
+            height: 20px;
+            margin-top: 3px;
+        }
+
+        .custom-checkbox {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+            height: 0; width: 0;
+        }
+
+        .checkmark {
+            position: absolute;
+            top: 0; left: 0;
+            height: 20px; width: 20px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        .checklist-card:hover .checkmark {
+            border-color: var(--accent-primary);
+        }
+
+        /* 체크 시 스타일 */
+        .custom-checkbox:checked ~ .checkmark {
+            background-color: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .checkmark:after {
+            content: "";
+            position: absolute;
+            display: none;
+        }
+
+        .custom-checkbox:checked ~ .checkmark:after {
+            display: block;
+        }
+
+        .checkmark:after {
+            left: 6px;
+            top: 2px;
+            width: 5px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        [data-theme="brutal"] .checkmark {
+            border: 2px solid #000;
+            border-radius: 0;
+            background: #fff;
+        }
+        [data-theme="brutal"] .checkmark:after {
+            border: solid #000;
+            border-width: 0 3px 3px 0;
+        }
+
+        [data-theme="bento-clay"] .checkmark {
+            border-radius: 50%;
+            background-color: #f1f5f9;
+            border: 1px solid #cbd5e1;
+        }
+
+        .checklist-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .checklist-item-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .checklist-item-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .card-tag {
+            align-self: flex-start;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
+            color: var(--accent-secondary);
+            margin-top: 6px;
+        }
+
+        /* 체크 완료 시 취소선 및 흐림 효과 */
+        .checklist-card.checked .checklist-item-title {
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+        .checklist-card.checked {
+            opacity: 0.7;
+        }
+
+        /* ==========================================
+           키프레임 애니메이션 정의
+           ========================================== */
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+
+        /* 스크롤바 디자인 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+        }
+        [data-theme="brutal"] ::-webkit-scrollbar-thumb {
+            background: #000;
+            border: 1px solid #fff;
+            border-radius: 0;
+        }
+        [data-theme="bento-clay"] ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. 테마 스위처 바 -->
+    <div class="theme-switcher-bar">
+        <div class="switcher-title">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>Bokji-AI 5대 신규 테마 프리뷰</span>
+        </div>
+        <div class="theme-buttons">
+            <button class="theme-btn active" onclick="switchTheme('glass', this)">
+                <i class="fa-solid fa-droplet"></i> 1. Glassmorphism
+            </button>
+            <button class="theme-btn" onclick="switchTheme('brutal', this)">
+                <i class="fa-solid fa-shapes"></i> 2. Neo-Brutalisim
+            </button>
+            <button class="theme-btn" onclick="switchTheme('minimal-dark', this)">
+                <i class="fa-solid fa-moon"></i> 3. Minimal Dark
+            </button>
+            <button class="theme-btn" onclick="switchTheme('bento-clay', this)">
+                <i class="fa-solid fa-cubes"></i> 4. Bento & Clay
+            </button>
+            <button class="theme-btn" onclick="switchTheme('cyberpunk', this)">
+                <i class="fa-solid fa-terminal"></i> 5. Cyberpunk
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. 테마별 주요 설명 패널 -->
+    <div class="theme-description-panel">
+        <h3 id="panel-title">Glassmorphism & Aurora UI</h3>
+        <p id="panel-desc">
+            배경의 은은한 오로라 그라데이션 광원과 컴포넌트의 반투명 유리가 조화를 이룹니다. 뒷배경이 흐려지는 효과(Backdrop Blur)와 미세한 화이트 보더라인을 통해 우주 공간에 떠 있는 듯한 세련되고 고급스러운 입체감을 줍니다. 최첨단 AI 챗봇 서비스의 깊이감을 표현하기에 이상적입니다.
+        </p>
+        <div style="margin-top: 12px;" id="panel-tags">
+            <span class="theme-tag">#글래스모피즘</span>
+            <span class="theme-tag">#오로라그라데이션</span>
+            <span class="theme-tag">#프리미엄UI</span>
+        </div>
+    </div>
+
+    <!-- 3. 메인 인터랙티브 레이아웃 -->
+    <div class="dashboard-container">
+        
+        <!-- 좌측: AI 챗봇 -->
+        <div class="chat-section">
+            <div class="chat-header">
+                <div class="chat-bot-info">
+                    <div class="bot-avatar">
+                        <i class="fa-solid fa-robot"></i>
+                        <span class="bot-status-dot"></span>
+                    </div>
+                    <div>
+                        <div class="bot-name" id="bot-name-text">Bokji-AI 케어봇</div>
+                        <div class="bot-subtitle">실시간 맞춤 복지 안내 시스템</div>
+                    </div>
+                </div>
+                <div style="font-size: 1.2rem; cursor: pointer; opacity: 0.7;">
+                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                </div>
+            </div>
+            
+            <!-- 실시간 메시지 영역 -->
+            <div class="chat-messages" id="chat-messages-container">
+                <div class="message-bubble ai">
+                    안녕하세요! 당신의 연령, 거주지, 가구 환경에 맞는 최적의 정부 복지 혜택과 지원 정책을 찾아드리는 <strong>Bokji-AI</strong>입니다. 무엇이든 물어보세요!
+                    <span class="message-time">오전 10:30</span>
+                </div>
+                <div class="message-bubble user">
+                    내가 받을 수 있는 청년 주거 복지 혜택에는 어떤 게 있어?
+                    <span class="message-time">오전 10:31</span>
+                </div>
+                <div class="message-bubble ai">
+                    현재 청년층을 위해 마련된 대표적인 주거 혜택은 다음과 같습니다. 우측의 맞춤형 체크리스트에 담아드렸으니, 하나씩 확인해 보시겠어요?
+                    <br><br>
+                    1. <strong>청년 월세 특별지원</strong> (월 최대 20만원 지원)<br>
+                    2. <strong>청년 버팀목 전세자금대출</strong> (저금리 전세 자금 대출)<br>
+                    3. <strong>행복주택 공급 사업</strong> (시세 대비 60~80% 저렴한 공공임대)
+                    <span class="message-time">오전 10:31</span>
+                </div>
+            </div>
+            
+            <!-- 입력창 (인터랙션 포함) -->
+            <div class="chat-input-bar">
+                <input type="text" class="chat-input" id="chat-user-input" placeholder="질문이나 궁금한 복지 혜택을 입력하세요..." onkeypress="handleEnter(event)">
+                <button class="send-btn" onclick="sendUserMessage()">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 우측: 복지 맞춤형 체크리스트 -->
+        <div class="checklist-section">
+            <div class="checklist-header">
+                <div class="checklist-title">
+                    <i class="fa-solid fa-clipboard-check"></i>
+                    <span>나의 복지 맞춤 체크리스트</span>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-text">
+                        <span>진행도</span>
+                        <span id="progress-percent">50%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-bar" id="progress-indicator" style="width: 50%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 카드 리스트 아이템 -->
+            <div class="checklist-items">
+                
+                <div class="checklist-card checked" onclick="toggleCard(this)">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" class="custom-checkbox" checked>
+                        <span class="checkmark"></span>
+                    </div>
+                    <div class="checklist-info">
+                        <span class="checklist-item-title">청년 월세 특별지원 신청</span>
+                        <span class="checklist-item-desc">만 19세~34세 독립 거주 청년 대상 무상 월세 지원 사업</span>
+                        <span class="card-tag">월 최대 20만원 / 최대 12개월</span>
+                    </div>
+                </div>
+
+                <div class="checklist-card" onclick="toggleCard(this)">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" class="custom-checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                    <div class="checklist-info">
+                        <span class="checklist-item-title">청년 우대형 청약통장 전환</span>
+                        <span class="checklist-item-desc">기존 주택청약종합저축을 우대형으로 전환하여 추가 이율 및 비과세 혜택 적용</span>
+                        <span class="card-tag">최대 금리 4.3% 적용</span>
+                    </div>
+                </div>
+
+                <div class="checklist-card checked" onclick="toggleCard(this)">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" class="custom-checkbox" checked>
+                        <span class="checkmark"></span>
+                    </div>
+                    <div class="checklist-info">
+                        <span class="checklist-item-title">버팀목 전세자금대출 서류 준비</span>
+                        <span class="checklist-item-desc">확정일자부 임대차계약서, 주민등록등본, 소득 증빙 서류 지참</span>
+                        <span class="card-tag">저리 전세대출 상품</span>
+                    </div>
+                </div>
+
+                <div class="checklist-card" onclick="toggleCard(this)">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" class="custom-checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                    <div class="checklist-info">
+                        <span class="checklist-item-title">행복주택 입주 자격 검증</span>
+                        <span class="checklist-item-desc">무주택 세대 구성원 자격 및 전년도 도시근로자 월평균 소득 기준 대조</span>
+                        <span class="card-tag">LH 청약플러스 공고 조회</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ==========================================
+       자바스크립트 인터랙션 및 테마 토글 핸들러
+       ========================================== */ -->
+    <script>
+        // 5대 트렌드 테마 메타데이터 정의
+        const themeInfo = {
+            'glass': {
+                title: '1. Glassmorphism & Aurora UI',
+                desc: '배경의 은은한 오로라 그라데이션 광원과 컴포넌트의 반투명 유리가 조화를 이룹니다. 뒷배경이 흐려지는 효과(Backdrop Blur)와 미세한 화이트 보더라인을 통해 세련되고 프리미엄한 깊이감을 줍니다. 최첨단 AI 서비스의 이미지를 부각하기에 이상적입니다.',
+                tags: ['#글래스모피즘', '#오로라광원', '#프리미엄UI', '#투명도레이어'],
+                botName: 'Bokji-AI 케어봇'
+            },
+            'brutal': {
+                title: '2. Neo-Brutalism',
+                desc: '대담하고 직관적인 디자인을 표방합니다. 미세한 그라데이션을 배제하고 강렬한 파스텔톤 플랫 배경, 아주 두껍고 뚜렷한 블랙 아웃라인, 그리고 왜곡이 없는 강력한 그림자를 특징으로 하여 Z세대에게 힙하고 강한 인상을 심어줍니다.',
+                tags: ['#네오브루탈리즘', '#블랙아웃라인', '#고대비', '#Z세대트렌드'],
+                botName: '복지 챗-봇 [BRUTAL]'
+            },
+            'minimal-dark': {
+                title: '3. Sleek Minimal Dark',
+                desc: '불필요한 요소를 극단적으로 절제한 미니멀 다크 모드입니다. 눈의 피로를 최소화하는 짙은 차콜 계열 컬러와 절제된 폰트 굵기를 사용하며, 오직 중요한 액션 포인트에만 은은한 에메랄드 그린 컬러로 악센트를 주어 고급스러운 정체성을 완성합니다.',
+                tags: ['#미니멀리즘', '#다크모드', '#아이컴포트', '#에센셜리즘'],
+                botName: 'Bokji AI (Minimal)'
+            },
+            'bento-clay': {
+                title: '4. Bento Grid & Claymorphism',
+                desc: '정갈하게 정리된 벤토 상자(Bento Box) 스타일의 격자 레이아웃 위에 부드러운 3D 점토(Clay) 텍스처 느낌의 컴포넌트를 올렸습니다. 음각과 양각의 부드러운 하이라이트 그림자를 활용하여 친근하고 부드러우며 접근하기 쉬운 대중적인 감성을 제공합니다.',
+                tags: ['#벤토그리드', '#클레이모피즘', '#부드러운3D', '#사용자친화적'],
+                botName: 'Bokji-AI 동반자'
+            },
+            'cyberpunk': {
+                title: '5. Cyberpunk / Sci-Fi Neon',
+                desc: '공상과학 터미널 느낌을 그대로 재현한 테마입니다. 올 블랙 배경 위를 지나가는 얇은 테크니컬 격자망과 핑크/사이언 형광색의 눈부신 네온사인 테두리 광원 효과가 압도적인 몰입감을 줍니다. 개발자 및 미래형 인터페이스를 선호하는 사용자층을 타겟팅합니다.',
+                tags: ['#사이버펑크', '#Sci-Fi네온', '#터미널UI', '#퓨처리스틱'],
+                botName: 'SYSTEM_BOKJI_AI_v1.0'
+            }
+        };
+
+        // 테마를 전환하는 함수
+        function switchTheme(themeName, element) {
+            // 1. HTML 엘리먼트 속성 변경
+            document.documentElement.setAttribute('data-theme', themeName);
+
+            // 2. 테마 스위처 버튼 액티브 클래스 갱신
+            const buttons = document.querySelectorAll('.theme-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+
+            // 3. 설명 패널의 컨텐츠를 애니메이션과 함께 갱신
+            const panelTitle = document.getElementById('panel-title');
+            const panelDesc = document.getElementById('panel-desc');
+            const panelTags = document.getElementById('panel-tags');
+            const botNameText = document.getElementById('bot-name-text');
+
+            panelTitle.style.opacity = '0';
+            panelDesc.style.opacity = '0';
+
+            setTimeout(() => {
+                panelTitle.innerText = themeInfo[themeName].title;
+                panelDesc.innerText = themeInfo[themeName].desc;
+                botNameText.innerText = themeInfo[themeName].botName;
+
+                // 해시태그 갱신
+                panelTags.innerHTML = '';
+                themeInfo[themeName].tags.forEach(tag => {
+                    const span = document.createElement('span');
+                    span.className = 'theme-tag';
+                    span.innerText = tag;
+                    panelTags.appendChild(span);
+                });
+
+                panelTitle.style.opacity = '1';
+                panelDesc.style.opacity = '1';
+            }, 150);
+        }
+
+        // 체크리스트 카드를 토글하는 함수 및 진행률 동적 계산
+        function toggleCard(cardElement) {
+            const checkbox = cardElement.querySelector('.custom-checkbox');
+            
+            // 체크 상태 뒤집기
+            checkbox.checked = !checkbox.checked;
+            
+            if (checkbox.checked) {
+                cardElement.classList.add('checked');
+            } else {
+                cardElement.classList.remove('checked');
+            }
+
+            // 전체 진행도 다시 계산
+            calculateProgress();
+        }
+
+        // 체크박스 클릭 이벤트가 부모 카드로 전파되어 중복 토글되는 현상 방지
+        const checkboxes = document.querySelectorAll('.custom-checkbox');
+        checkboxes.forEach(cb => {
+            cb.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const card = cb.closest('.checklist-card');
+                if (cb.checked) {
+                    card.classList.add('checked');
+                } else {
+                    card.classList.remove('checked');
+                }
+                calculateProgress();
+            });
+        });
+
+        // 진행률 바 갱신 함수
+        function calculateProgress() {
+            const totalCards = document.querySelectorAll('.checklist-card').length;
+            const checkedCards = document.querySelectorAll('.checklist-card.checked').length;
+            
+            const percentage = totalCards > 0 ? Math.round((checkedCards / totalCards) * 100) : 0;
+            
+            const progressPercent = document.getElementById('progress-percent');
+            const progressIndicator = document.getElementById('progress-indicator');
+            
+            progressPercent.innerText = `${percentage}%`;
+            progressIndicator.style.width = `${percentage}%`;
+        }
+
+        // 엔터 키 입력 핸들러
+        function handleEnter(event) {
+            if (event.key === 'Enter') {
+                sendUserMessage();
+            }
+        }
+
+        // 유저 메시지 전송 및 AI 자동 응답 인터랙션
+        function sendUserMessage() {
+            const input = document.getElementById('chat-user-input');
+            const messageText = input.value.trim();
+            if (!messageText) return;
+
+            const chatContainer = document.getElementById('chat-messages-container');
+            const now = new Date();
+            const timeString = `${now.getHours() >= 12 ? '오후' : '오전'} ${now.getHours() % 12 || 12}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+            // 1. 유저 메시지 돔 추가
+            const userMsgDiv = document.createElement('div');
+            userMsgDiv.className = 'message-bubble user';
+            userMsgDiv.innerHTML = `${messageText}<span class="message-time">${timeString}</span>`;
+            chatContainer.appendChild(userMsgDiv);
+            
+            // 입력창 비우기 및 스크롤 다운
+            input.value = '';
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            // 2. AI 반응 답변 지연 생성 (사용성 향상을 위한 미세 타이핑 연출)
+            setTimeout(() => {
+                const aiMsgDiv = document.createElement('div');
+                aiMsgDiv.className = 'message-bubble ai';
+                
+                // 테마 성격에 맞는 대답을 동적으로 생성
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                let botAnswer = '';
+
+                if (currentTheme === 'glass') {
+                    botAnswer = `입력하신 내용 "${messageText}"을(를) 정밀 분석하고 있습니다. 우아하고 직관적인 투명 오로라 인터페이스에서 가장 핵심적인 정책 정보만을 엄선하여 정리해 드리겠습니다. 잠시만 기다려 주세요.`;
+                } else if (currentTheme === 'brutal') {
+                    botAnswer = `[검색 완료!] 입력어: "${messageText}". 복잡한 수식어 빼고 바로 매칭되는 정부 복지 데이터 3건을 필터링했습니다! 우측 체크리스트를 클릭해 완료 처리하세요!`;
+                } else if (currentTheme === 'minimal-dark') {
+                    botAnswer = `"${messageText}" 관련 분석이 완료되었습니다. 필수 주거 지원 항목 및 필요 서류 기준을 우측 패널에 간결하게 표기했습니다.`;
+                } else if (currentTheme === 'bento-clay') {
+                    botAnswer = `앗, "${messageText}"에 대해 찾아보셨군요! 😊 따뜻한 둥글둥글 클레이 카드 형태로 맞춤형 지원 정책 가이드를 완성해 보았어요. 천천히 하나씩 읽어보셔도 좋아요.`;
+                } else if (currentTheme === 'cyberpunk') {
+                    botAnswer = `>> INPUT_QUERY: "${messageText}"<br>>> PARSING DATABASE... [OK]<br>>> 관련 정보 및 신청 요강 프로토콜을 우측 벤토 데이터베이스 모듈에 성공적으로 오버레이하였습니다.`;
+                }
+
+                aiMsgDiv.innerHTML = `${botAnswer}<span class="message-time">${timeString}</span>`;
+                chatContainer.appendChild(aiMsgDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }, 1000);
+        }
+
+        // 초기 진행도 계산
+        calculateProgress();
+    </script>
+</body>
+</html>
