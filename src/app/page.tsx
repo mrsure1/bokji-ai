@@ -1,291 +1,156 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { Onboarding } from '@/components/Onboarding';
-import { RecommendedFeed } from '@/components/RecommendedFeed';
-import { AIChat } from '@/components/AIChat';
-import { BenefitDetail } from '@/components/BenefitDetail';
-import { SavedChecklist } from '@/components/SavedChecklist';
-import { AdminReview } from '@/components/AdminReview';
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { ddayLabel, getHeroBenefit, getTimeline } from "@/lib/data";
+import { useApp } from "@/store/AppStore";
 
-// 데모 페이지에서 사용할 가능한 화면 키 정의
-type ScreenType = 'onboarding' | 'feed' | 'chat' | 'detail' | 'saved' | 'admin';
+const hero = getHeroBenefit();
+const timeline = getTimeline();
 
-export default function Home() {
-  // 현재 활성화된 시안 화면 상태
-  const [activeScreen, setActiveScreen] = useState<ScreenType>('feed');
-  
-  // 사용자가 저장한 혜택 ID 배열 상태 (컴포넌트 간 공유)
-  const [savedIds, setSavedIds] = useState<string[]>(['bf-01']);
-  
-  // 피드 검색창에서 상담창으로 넘어갈 때 전달할 검색어 상태
-  const [initialChatQuery, setInitialChatQuery] = useState<string | undefined>(undefined);
-  
-  // 현재 상세조회 중인 복지 혜택 ID 상태
-  const [selectedBenefitId, setSelectedBenefitId] = useState<string>('bf-01');
+export default function HomePage() {
+  const { isSaved, toggleSave, unreadCount } = useApp();
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const [showCue, setShowCue] = useState(true);
+  const saved = isSaved(hero.id);
 
-  // 북마크 저장/취소 토글 핸들러
-  const handleToggleSave = (id: string) => {
-    setSavedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
-  };
-
-  // 피드에서 AI상담으로 이동할 때 핸들러
-  const handleNavigateToChat = (query?: string) => {
-    setInitialChatQuery(query);
-    setActiveScreen('chat');
-  };
-
-  // 피드/채팅에서 상세보기로 이동할 때 핸들러
-  const handleSelectBenefit = (id: string) => {
-    setSelectedBenefitId(id);
-    setActiveScreen('detail');
-  };
-
-  // 온보딩 완료 시 피드로 이동
-  const handleOnboardingComplete = (data: any) => {
-    console.log('온보딩 완료 데이터:', data);
-    setActiveScreen('feed');
-  };
+  // 타임라인이 화면에 들어오면 스크롤 단서를 숨김 (놓침 방지 UI)
+  useEffect(() => {
+    const el = timelineRef.current;
+    if (!el) return;
+    const ob = new IntersectionObserver(([e]) => setShowCue(!e.isIntersecting), {
+      threshold: 0.15,
+    });
+    ob.observe(el);
+    return () => ob.disconnect();
+  }, []);
 
   return (
-    <div className="min-h-screen bg-[#F1F3F5] flex flex-col">
-      {/* 최상단 데모 컨트롤 바 */}
-      <nav className="bg-[#202124] text-white px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4 shadow-md z-10">
-        <div className="flex items-center gap-3">
-          <span className="bg-[#18A058] text-white text-xs font-bold px-2.5 py-1 rounded-md">WelfareFit</span>
-          <span className="text-sm font-semibold tracking-wide text-zinc-300">
-            Calm Pop Welfare 디자인 시안 데모 플레이그라운드
-          </span>
+    <main className="flex-1 px-5 pb-24 pt-5">
+      {/* 헤더 */}
+      <header className="mb-4 flex items-center justify-between">
+        <span className="font-display text-lg font-extrabold">
+          복지<span className="text-brand">AI</span>
+        </span>
+        <Link
+          href="/notifications"
+          aria-label="알림"
+          className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-line bg-card text-[15px]"
+        >
+          🔔
+          {unreadCount > 0 && (
+            <span className="absolute right-2 top-2 h-[7px] w-[7px] rounded-full border-2 border-card bg-coral" />
+          )}
+        </Link>
+      </header>
+
+      <p className="text-sm text-muted">
+        지영님, <b className="text-coral">{ddayLabel(hero.dday)} 마감</b>이에요
+      </p>
+      <h1 className="mb-4 text-[22px] font-bold tracking-tight">오늘 이거 하나, 꼭 챙기세요</h1>
+
+      {/* 히어로 카드 */}
+      <section className="relative overflow-hidden rounded-3xl border border-[#f6dada] bg-card p-5 shadow-[0_18px_42px_-22px_rgba(235,87,87,0.35)]">
+        <span className="absolute inset-y-0 left-0 w-[5px] bg-coral" />
+        <span className="mb-3 inline-flex items-center gap-2 rounded-full bg-coral-light px-3 py-[7px] font-display text-xs font-extrabold text-coral">
+          <span className="h-2 w-2 animate-pulse-ring rounded-full bg-coral" />
+          {ddayLabel(hero.dday)} · 마감 임박
+        </span>
+        <p className="mb-2 text-xs font-semibold text-brand-dark">
+          <span className="mr-1 inline-block h-[6px] w-[6px] rounded-full bg-brand align-middle" />
+          가능성 높음 · 지영님 조건과 거의 일치
+        </p>
+        <h2 className="mb-2 text-[23px] font-bold tracking-tight">{hero.name}</h2>
+        <p className="mb-2 font-display text-[34px] font-extrabold leading-none text-brand">
+          {hero.amount}
+          {hero.amountNote && (
+            <span className="font-display text-[15px] font-semibold text-muted"> / {hero.amountNote}</span>
+          )}
+        </p>
+        <p className="mb-4 text-[13px] leading-relaxed text-muted">{hero.summary}</p>
+
+        <div className="mb-4 flex flex-col gap-2 text-[13px] text-[#3a3d40]">
+          <div className="flex gap-2">
+            <span className="w-4 text-center text-brand">✓</span>
+            {hero.conditions.join(" · ")}
+          </div>
+          <div className="flex gap-2">
+            <span className="w-4 text-center text-brand">🗓️</span>
+            신청 마감 <b className="ml-0.5 text-coral">{hero.deadlineLabel ?? ddayLabel(hero.dday)}</b>
+          </div>
+          <div className="flex gap-2">
+            <span className="w-4 text-center text-brand">📄</span>
+            {hero.documents.slice(0, 2).join(" · ")}만 있으면 OK
+          </div>
         </div>
-        {/* 6종 시안 스위처 버튼 묶음 */}
-        <div className="flex flex-wrap gap-1.5 justify-center">
-          {(['onboarding', 'feed', 'chat', 'detail', 'saved', 'admin'] as const).map((screen) => {
-            const labels: Record<ScreenType, string> = {
-              onboarding: '1. 온보딩 폼',
-              feed: '2. 추천 피드',
-              chat: '3. AI 상담실',
-              detail: '4. 요약 상세',
-              saved: '5. 보관함/체크',
-              admin: '6. 어드민 콘솔',
-            };
-            return (
-              <button
-                key={screen}
-                onClick={() => {
-                  setActiveScreen(screen);
-                  // 채팅 탭 클릭 시에는 이전 쿼리 제거하여 빈 채팅으로 리로드 가능하게 처리
-                  if (screen === 'chat') setInitialChatQuery(undefined);
-                }}
-                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                  activeScreen === screen
-                    ? 'bg-[#18A058] text-white shadow-sm'
-                    : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white'
+
+        <Link
+          href={`/benefit/${hero.id}`}
+          className="block rounded-2xl bg-brand py-4 text-center font-bold text-white shadow-[0_12px_22px_-12px_rgba(24,160,88,0.6)] active:scale-[0.99]"
+        >
+          서류 준비하고 신청하기 →
+        </Link>
+        <div className="mt-3 flex justify-center gap-5 text-[12.5px] text-muted">
+          <button onClick={() => toggleSave(hero.id)} className="flex items-center gap-1">
+            {saved ? "🔖 저장됨" : "🔖 저장"}
+          </button>
+          <Link href="/chat" className="flex items-center gap-1">💬 물어보기</Link>
+        </div>
+      </section>
+
+      {/* 타임라인 */}
+      <div className="mb-3 mt-7 flex items-baseline justify-between px-1">
+        <h3 className="text-base font-bold tracking-tight">곧 마감되는 다른 혜택</h3>
+        <span className="text-[12.5px] text-muted">전체 {timeline.length + 1}건</span>
+      </div>
+      <div ref={timelineRef} className="relative pl-6">
+        <span className="absolute bottom-4 left-[7px] top-1.5 w-0.5 bg-line" />
+        {timeline.map((b) => {
+          const urgent = b.dday !== null && b.dday <= 14;
+          return (
+            <Link key={b.id} href={`/benefit/${b.id}`} className="relative mb-3 block">
+              <span
+                className={`absolute -left-[19px] top-[18px] h-3 w-3 rounded-full border-[3px] bg-card ${
+                  urgent ? "border-amber" : "border-brand"
+                }`}
+              />
+              <span
+                className={`mb-2 inline-block rounded-md px-2 py-[5px] font-display text-[11px] font-extrabold ${
+                  urgent ? "bg-amber-light text-amber-dark" : "bg-brand-light text-brand-dark"
                 }`}
               >
-                {labels[screen]}
-              </button>
-            );
-          })}
-        </div>
-      </nav>
-
-      {/* 메인 레이아웃 구역 */}
-      <main className="flex-1 flex flex-col lg:flex-row p-6 gap-6 justify-center items-stretch">
-        
-        {/* 시안 화면에 따른 뷰포트 분기 */}
-        {activeScreen === 'admin' ? (
-          // 6. 관리자 화면: 넓은 데스크톱 뷰포트
-          <div className="w-full bg-[#FAFAF7] rounded-3xl border border-[#EDEDEB] shadow-lg overflow-hidden p-6 self-start">
-            <div className="mb-4 text-xs font-medium text-zinc-500">
-              * 본 화면은 어드민 웹 서비스 데스크톱 시안 사양을 나타냅니다.
-            </div>
-            <AdminReview />
-          </div>
-        ) : (
-          // 1~5. 모바일 PWA용 컴포넌트: 모바일 기기 프레임 적용
-          <div className="flex flex-col lg:flex-row gap-6 w-full max-w-5xl justify-center items-start">
-            
-            {/* 왼쪽: 모바일 기기 시뮬레이터 (PWA 형태) */}
-            <div className="w-[375px] h-[812px] bg-white rounded-[40px] border-[12px] border-zinc-900 shadow-2xl relative overflow-hidden flex flex-col justify-between select-none mx-auto lg:mx-0 shrink-0">
-              
-              {/* 모바일 노치바 시뮬레이션 */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-6 bg-zinc-900 rounded-b-2xl z-20 flex justify-center items-end pb-1">
-                <div className="w-12 h-1 bg-zinc-800 rounded-full" />
-              </div>
-
-              {/* 기기 배터리/시간 표시 영역 */}
-              <div className="h-10 bg-white border-b border-[#FAFAF7] flex justify-between items-center px-6 pt-3 text-[10px] font-bold text-zinc-500 z-10 shrink-0">
-                <span>17:30</span>
-                <div className="flex gap-1.5 items-center">
-                  <span>5G</span>
-                  <div className="w-5 h-2.5 border border-zinc-500 rounded-sm p-0.5 flex items-center">
-                    <div className="w-full h-full bg-zinc-600 rounded-2xs" />
-                  </div>
+                {ddayLabel(b.dday)}
+              </span>
+              <div className="rounded-2xl border border-line bg-card p-4 shadow-[0_4px_14px_rgba(0,0,0,0.04)]">
+                <div className="flex items-start justify-between gap-2.5">
+                  <b className="text-[15px] tracking-tight">{b.name}</b>
+                  <span className="whitespace-nowrap font-display text-sm font-bold text-brand">{b.amount}</span>
                 </div>
+                <p className="mt-1.5 text-xs leading-snug text-muted">{b.summary}</p>
               </div>
+            </Link>
+          );
+        })}
+      </div>
 
-              {/* 실제 PWA 앱 구동 화면 */}
-              <div className="flex-1 overflow-y-auto bg-[#FAFAF7]">
-                {activeScreen === 'onboarding' && (
-                  <Onboarding onComplete={handleOnboardingComplete} />
-                )}
-                {activeScreen === 'feed' && (
-                  <RecommendedFeed
-                    onNavigateToChat={handleNavigateToChat}
-                    onSelectBenefit={handleSelectBenefit}
-                    savedIds={savedIds}
-                    onToggleSave={handleToggleSave}
-                  />
-                )}
-                {activeScreen === 'chat' && (
-                  <AIChat
-                    initialQuery={initialChatQuery}
-                    onSelectBenefit={handleSelectBenefit}
-                    onToggleSave={handleToggleSave}
-                    savedIds={savedIds}
-                  />
-                )}
-                {activeScreen === 'detail' && (
-                  <BenefitDetail
-                    benefitId={selectedBenefitId}
-                    onBack={() => setActiveScreen('feed')}
-                    onToggleSave={handleToggleSave}
-                    savedIds={savedIds}
-                  />
-                )}
-                {activeScreen === 'saved' && (
-                  <SavedChecklist
-                    savedIds={savedIds}
-                    onSelectBenefit={handleSelectBenefit}
-                    onRemove={handleToggleSave}
-                  />
-                )}
-              </div>
-
-              {/* PWA 전용 하단 탭바 메뉴 */}
-              <div className="h-20 bg-white border-t border-[#EDEDEB] flex justify-around items-center px-4 pb-4 shrink-0 z-10">
-                {([
-                  { key: 'feed', icon: '🏠', label: '홈 피드' },
-                  { key: 'chat', icon: '💬', label: 'AI 상담' },
-                  { key: 'saved', icon: '📂', label: '보관함' },
-                ] as const).map((tab) => (
-                  <button
-                    key={tab.key}
-                    onClick={() => {
-                      setActiveScreen(tab.key);
-                      if (tab.key === 'chat') setInitialChatQuery(undefined);
-                    }}
-                    className={`flex flex-col items-center justify-center gap-1 w-16 h-12 transition-all ${
-                      activeScreen === tab.key
-                        ? 'text-[#18A058] scale-105 font-bold'
-                        : 'text-zinc-400 font-medium'
-                    }`}
-                  >
-                    <span className="text-lg">{tab.icon}</span>
-                    <span className="text-[9px]">{tab.label}</span>
-                  </button>
-                ))}
-              </div>
-
-              {/* 모바일 하단 홈바 인디케이터 */}
-              <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-32 h-1 bg-zinc-900 rounded-full z-20" />
-            </div>
-
-            {/* 오른쪽: 가이드라인 및 설명 판넬 */}
-            <div className="flex-1 bg-white border border-[#EDEDEB] rounded-3xl p-6 shadow-md flex flex-col justify-between min-h-[400px]">
-              <div>
-                <span className="text-[10px] font-bold text-[#18A058] bg-[#EAF7F0] px-2.5 py-1 rounded-md uppercase tracking-wider">
-                  시안 가이드
-                </span>
-                
-                {activeScreen === 'onboarding' && (
-                  <div className="mt-4 space-y-3">
-                    <h3 className="text-lg font-bold text-[#202124]">1. 온보딩 폼 프로필 입력</h3>
-                    <p className="text-xs text-zinc-600 leading-relaxed">
-                      사용자의 기초 정보(출생년도, 지역, 취업상태, 관심분야)를 부담스럽지 않게 한 단계씩 순차 수집하는 UI입니다.
-                    </p>
-                    <ul className="text-xs text-zinc-500 list-disc pl-4 space-y-1">
-                      <li>진행 단계(1~3)를 직관적으로 나타내는 바 및 점 디자인</li>
-                      <li>모바일 접근성(터치 영역)을 고려한 큼직한 폼 구성</li>
-                      <li>마지막 단계에 야간 발송 방지용 SMS 알림 동의 포함</li>
-                    </ul>
-                  </div>
-                )}
-
-                {activeScreen === 'feed' && (
-                  <div className="mt-4 space-y-3">
-                    <h3 className="text-lg font-bold text-[#202124]">2. 맞춤 추천 혜택 피드 (홈)</h3>
-                    <p className="text-xs text-zinc-600 leading-relaxed">
-                      로그인 시 첫 화면으로, 사용자 조건에 필터링된 복지 목록을 매칭 적합도 뱃지와 함께 나타내는 피드형 UI입니다.
-                    </p>
-                    <ul className="text-xs text-zinc-500 list-disc pl-4 space-y-1">
-                      <li>자연어 상담으로 바로 유도하는 통합 AI 질의바 최상단 고정</li>
-                      <li>가능성 높음(Green), 마감 임박(Red), 확인 필요(Yellow) 배지 구분</li>
-                      <li>북마크 저장 버튼으로 즉시 피드백 제공</li>
-                    </ul>
-                  </div>
-                )}
-
-                {activeScreen === 'chat' && (
-                  <div className="mt-4 space-y-3">
-                    <h3 className="text-lg font-bold text-[#202124]">3. 자연어 AI 상담실 (챗봇)</h3>
-                    <p className="text-xs text-zinc-600 leading-relaxed">
-                      "퇴직해서 월세가 부담돼" 같은 일상 고민을 치면 AI가 이를 분석하여 추천 혜택 카드 캐러셀과 함께 친절히 응답하는 대화형 UI입니다.
-                    </p>
-                    <ul className="text-xs text-zinc-500 list-disc pl-4 space-y-1">
-                      <li>긴 행정 텍스트를 AI가 상황 공감 요약문과 가로 카드 스크롤로 구성</li>
-                      <li>사용자가 더 쉽게 답할 수 있도록 지자체 퀵 리플라이 버튼 연동</li>
-                      <li>"반드시 지원받는다" 대신 "신청 조건 검토 필요" 등 안내</li>
-                    </ul>
-                  </div>
-                )}
-
-                {activeScreen === 'detail' && (
-                  <div className="mt-4 space-y-3">
-                    <h3 className="text-lg font-bold text-[#202124]">4. 혜택 상세 및 AI 쉬운 말 요약</h3>
-                    <p className="text-xs text-zinc-600 leading-relaxed">
-                      행정 전문 문장을 배제하고, AI가 해독한 초등학생 눈높이의 한 줄 요약 및 무엇을, 언제, 어떻게 받는지 일목요연하게 표시합니다.
-                    </p>
-                    <ul className="text-xs text-zinc-500 list-disc pl-4 space-y-1">
-                      <li>상세 준비 서류를 미리 챙길 수 있는 다이내믹 서류 체크리스트</li>
-                      <li>신뢰성을 보장하기 위해 하단에 원문 접기/펼치기 아코디언 제공</li>
-                      <li>원클릭으로 정부24 등 신청 페이지 아웃링크 연결</li>
-                    </ul>
-                  </div>
-                )}
-
-                {activeScreen === 'saved' && (
-                  <div className="mt-4 space-y-3">
-                    <h3 className="text-lg font-bold text-[#202124]">5. 저장한 혜택 보관함 & 체크리스트</h3>
-                    <p className="text-xs text-zinc-600 leading-relaxed">
-                      저장된 혜택의 마감 일정을 확인하고, 준비한 서류 체크 개수를 게이지로 직관적으로 추적하는 트래커 화면입니다.
-                    </p>
-                    <ul className="text-xs text-zinc-500 list-disc pl-4 space-y-1">
-                      <li>마감 3일 전 임박 시 Coral Red D-Day 강조</li>
-                      <li>준비 완료 개수에 맞게 동적으로 늘어나는 진행 바 시각 효과</li>
-                      <li>원클릭 삭제 및 체크리스트 바로가기 퀵 메뉴 지원</li>
-                    </ul>
-                  </div>
-                )}
-              </div>
-
-              {/* 하단 트랜드 가이드 칩 */}
-              <div className="pt-6 border-t border-[#EDEDEB] space-y-2">
-                <span className="text-[10px] font-bold text-[#8C9196] block uppercase">Calm Pop UI Tech</span>
-                <p className="text-[10px] text-zinc-500 leading-relaxed">
-                  본 플레이그라운드는 Next.js 15와 Tailwind CSS v4를 활용하여 렌더링되고 있습니다.
-                  CSS Variables 기반의 디자인 시스템을 사용하여 다크모드 및 모바일 PWA 환경에 기민하게 반응합니다.
-                </p>
-              </div>
-            </div>
-
-          </div>
-        )}
-
-      </main>
-    </div>
+      {/* 스크롤 단서 바 (놓침 방지) */}
+      {showCue && (
+        <button
+          onClick={() => timelineRef.current?.scrollIntoView({ behavior: "smooth" })}
+          className="fixed bottom-[72px] left-1/2 z-20 flex w-[calc(100%-2rem)] max-w-[448px] -translate-x-1/2 items-center gap-3 rounded-2xl border border-line bg-card px-3.5 py-3 text-left shadow-[0_12px_28px_-10px_rgba(0,0,0,0.22)]"
+        >
+          <span className="flex items-center gap-1.5 rounded-lg bg-coral-light px-2.5 py-[7px] font-display text-[11px] font-extrabold text-coral">
+            <span className="h-1.5 w-1.5 rounded-full bg-coral" />
+            {ddayLabel(timeline[0]?.dday ?? null)}
+          </span>
+          <span className="flex-1 text-[13px] leading-tight text-[#3a3d40]">
+            아래로 내리면 <b>곧 마감되는 혜택 {timeline.length}건</b>이 더 있어요
+          </span>
+          <span className="flex h-[30px] w-[30px] animate-bob items-center justify-center rounded-full bg-brand text-[15px] text-white">
+            ⌄
+          </span>
+        </button>
+      )}
+    </main>
   );
 }
-

@@ -1,0 +1,3 @@
+-- initial_schema: MVP 테이블 + RLS (원격 적용 완료 — 로컬 참조용)
+-- profiles, benefits, benefit_summaries, benefit_embeddings,
+-- saved_benefits, notification_settings, notification_logs
