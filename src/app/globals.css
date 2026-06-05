@@ -1,0 +1,103 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  /* 색상 토큰 (Color Tokens) */
+  --background: #FAFAF7; /* Warm White */
+  --foreground: #202124; /* Deep Charcoal */
+  --color-bg-card: #FFFFFF;
+  --color-text-secondary: #5F6368;
+  --color-text-muted: #8C9196;
+
+  /* 브랜드 색상 (Brand & Accent Colors) */
+  --color-brand-primary: #18A058;     /* Fresh Green */
+  --color-brand-hover: #148046;
+  --color-brand-light: #E8F5E9;
+  
+  /* 상태 색상 (Status Colors) */
+  --color-status-success: #18A058;    /* 가능성 높음 */
+  --color-status-success-light: #EAF7F0;
+  --color-status-warning: #F2C94C;    /* 확인 필요 */
+  --color-status-warning-light: #FEF9E7;
+  --color-status-danger: #EB5757;     /* 마감 임박 / 제한 */
+  --color-status-danger-light: #FDF2F2;
+  --color-status-info: #2F80ED;       /* 새 혜택 / 공지 */
+  --color-status-info-light: #EEF4FC;
+
+  /* 테두리 둥글기 (Border Radius) */
+  --border-radius-sm: 8px;
+  --border-radius-md: 16px;
+  --border-radius-lg: 24px;
+  --border-radius-full: 9999px;
+  
+  /* 그림자 효과 (Shadows) */
+  --shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-premium: 0 10px 30px rgba(32, 33, 36, 0.06);
+  --shadow-interactive: 0 12px 24px -10px rgba(24, 160, 88, 0.2);
+
+  /* 애니메이션 트랜지션 (Transitions) */
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-elastic: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--color-bg-card);
+  --color-brand: var(--color-brand-primary);
+  --color-brand-hover: var(--color-brand-hover);
+  --color-brand-light: var(--color-brand-light);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+  
+  --color-success: var(--color-status-success);
+  --color-success-light: var(--color-status-success-light);
+  --color-warning: var(--color-status-warning);
+  --color-warning-light: var(--color-status-warning-light);
+  --color-danger: var(--color-status-danger);
+  --color-danger-light: var(--color-status-danger-light);
+  --color-info: var(--color-status-info);
+  --color-info-light: var(--color-status-info-light);
+
+  --font-heading: 'Outfit', 'Noto Sans KR', sans-serif;
+  --font-body: 'Inter', 'Noto Sans KR', sans-serif;
+  
+  --radius-sm: var(--border-radius-sm);
+  --radius-md: var(--border-radius-md);
+  --radius-lg: var(--border-radius-lg);
+  --radius-full: var(--border-radius-full);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+/* 글래스모피즘 패널 스타일 */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: var(--shadow-subtle);
+}
+
+/* 복지 카드 공통 스타일 */
+.welfare-card {
+  background: var(--color-bg-card);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-subtle);
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  transition: var(--transition-elastic);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.welfare-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-premium);
+}
+
