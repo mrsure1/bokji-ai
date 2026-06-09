@@ -107,20 +107,26 @@ export type Database = {
           apply_start: string | null
           apply_url: string | null
           benefit_summary: string | null
+          category: string | null
           collected_at: string | null
           deadline: string | null
           documents: string[] | null
           external_id: string | null
+          household_types: string[]
           id: string
+          life_stages: string[]
           plain_summary: string | null
           provider: string | null
           raw_content: string | null
           region_scope: string | null
+          region_sido: string | null
+          region_sigungu: string | null
           requirements: string | null
           review_status: string | null
           source: string
           tags: string[] | null
           target_summary: string | null
+          themes: string[]
           title: string
           updated_at: string | null
         }
@@ -128,20 +134,26 @@ export type Database = {
           apply_start?: string | null
           apply_url?: string | null
           benefit_summary?: string | null
+          category?: string | null
           collected_at?: string | null
           deadline?: string | null
           documents?: string[] | null
           external_id?: string | null
+          household_types?: string[]
           id?: string
+          life_stages?: string[]
           plain_summary?: string | null
           provider?: string | null
           raw_content?: string | null
           region_scope?: string | null
+          region_sido?: string | null
+          region_sigungu?: string | null
           requirements?: string | null
           review_status?: string | null
           source: string
           tags?: string[] | null
           target_summary?: string | null
+          themes?: string[]
           title: string
           updated_at?: string | null
         }
@@ -149,20 +161,26 @@ export type Database = {
           apply_start?: string | null
           apply_url?: string | null
           benefit_summary?: string | null
+          category?: string | null
           collected_at?: string | null
           deadline?: string | null
           documents?: string[] | null
           external_id?: string | null
+          household_types?: string[]
           id?: string
+          life_stages?: string[]
           plain_summary?: string | null
           provider?: string | null
           raw_content?: string | null
           region_scope?: string | null
+          region_sido?: string | null
+          region_sigungu?: string | null
           requirements?: string | null
           review_status?: string | null
           source?: string
           tags?: string[] | null
           target_summary?: string | null
+          themes?: string[]
           title?: string
           updated_at?: string | null
         }

@@ -30,7 +30,7 @@ export default function HomePage() {
       {/* 헤더 */}
       <header className="mb-4 flex items-center justify-between">
         <span className="font-display text-lg font-extrabold">
-          복지<span className="text-brand">AI</span>
+          bokji<span className="text-brand">-ai</span>
         </span>
         <Link
           href="/notifications"

@@ -17,10 +17,10 @@
 
 ### 2.1. 프론트엔드
 
-* **프레임워크:** Next.js
+* **프레임워크:** Next.js 16(App Router) + React 19
 * **앱 형태:** PWA(Progressive Web App)
-* **언어:** TypeScript
-* **UI:** Tailwind CSS 또는 shadcn/ui 기반 컴포넌트
+* **언어:** TypeScript 5
+* **UI:** Tailwind CSS v4 — `globals.css`의 `@theme` 디자인 토큰 기반. E2E 테스트는 Playwright.
 * **주요 화면:**
     * 온보딩/프로필 입력
     * 자연어 상담 채팅
@@ -32,12 +32,12 @@
 
 ### 2.2. 백엔드
 
-* **런타임:** Next.js Route Handler 또는 별도 Node.js API 서버
-* **DB:** PostgreSQL
-* **벡터 검색:** pgvector
-* **인증:** Auth.js 또는 Supabase Auth
+* **런타임:** Next.js Route Handler
+* **DB:** Supabase 관리형 Postgres. 앱은 `@supabase/supabase-js`, 수집/마이그레이션은 `pg` 직접 연결.
+* **벡터 검색:** pgvector — 확장을 활성화하고 `benefit_embeddings` 테이블에 임베딩을 저장한다.
+* **인증:** Supabase Auth — `@supabase/ssr` 쿠키 세션을 사용한다.
 * **파일/로그 저장:** 초기에는 DB 중심으로 관리하고, 추후 객체 스토리지 연동
-* **작업 스케줄러:** Vercel Cron, GitHub Actions, Cloudflare Cron, 또는 별도 워커
+* **작업 스케줄러:** Vercel Cron(`POST /api/cron/collect`, `CRON_SECRET` Bearer 인증)
 
 ### 2.3. AI
 
@@ -50,6 +50,7 @@
     * 복지 공고 원문 및 요약문 벡터화
     * 사용자 질문과 의미적으로 가까운 복지 공고 검색
 * **중요 원칙:** AI는 수급 가능 여부를 확정하지 않고, 후보 혜택을 설명하고 추가 확인이 필요한 조건을 안내한다.
+* **기술 선택:** LLM/Embedding 모두 **Google Gemini**(`@google/generative-ai`)를 사용한다. 상담 모델은 `GEMINI_MODEL`(기본 `gemini-3.1-flash`), 임베딩은 `text-embedding-004`를 사용하며, 상담 응답은 JSON 스키마 강제 출력으로 구조화한다.
 
 ### 2.4. 알림
 
@@ -94,6 +95,17 @@ Next.js PWA <-> API 서버 <-> AI 상담/요약 모듈
 * 복지로 및 한국사회보장정보원 복지서비스 정보
 * 지자체 복지서비스 API 또는 공개 데이터
 
+**연동 대상:** 어댑터 3종 + 보조 코드 1종을 연동한다. 소스별 어댑터는 `src/lib/collector/*`에 분리한다.
+
+| 소스 | API operation | 예상 수집 규모 |
+| --- | --- | --- |
+| 복지로 중앙부처 | `NationalWelfareInformationsV001 / NationalWelfarelistV001` | 약 448 |
+| 복지로 지자체 | `LocalGovernmentWelfareInformations / LcgvWelfarelist` | 약 4,561 |
+| 정부24 공공서비스 | `gov24/v3/serviceList` | 약 10,962 |
+| **합계** | | **약 15,971** |
+
+* 사회서비스 전자바우처 공통코드(SSIS, `api.socialservice.or.kr`)는 시도/시군구/서비스분류 코드(보조 온톨로지) 용도로 활용한다(`ssis-commoncode-client`).
+
 ### 4.2. 수집 방식
 
 * 매일 새벽 1회 이상 정기 수집한다.
@@ -126,6 +138,9 @@ Next.js PWA <-> API 서버 <-> AI 상담/요약 모듈
 * 쉬운 말 요약
 * 추천 태그
 * 마지막 수집 시각
+
+**`benefits` 테이블 설계:** 기본 필드(`title`/`provider`/`apply_url`/`deadline`/`region_scope`/`target_summary`/`requirements`/`raw_content`/`tags`/`collected_at` 등)에 더해 **검색용 정규화 facet 컬럼**을 둔다: `region_sido`, `region_sigungu`, `life_stages[]`(생애주기), `household_types[]`(가구유형), `themes[]`(관심주제), `category`(카테고리) — 각 컬럼에 인덱스를 둔다. 도출 로직은 `src/lib/benefits/facets.ts`에 둔다. 사용자 `profiles` 스키마(거주지/가구유형/관심분야)와 1:1 대응시켜 "프로필 ↔ 혜택" 하드필터가 가능하도록 설계한다.
+**단계적 정규화 대상:** 대상 연령(숫자 범위), 소득 조건, 주거 조건은 1차에서는 자유 텍스트(`requirements`/`target_summary`)로 두고 점진적으로 별도 컬럼/필터로 구조화한다. `deadline`은 date 컬럼으로 두고(파싱 불가한 자유 텍스트는 null 처리), 카테고리는 정부24 분류와 키워드 추론을 통합 정규화한다.
 
 ## 5. 사용자 데이터 모델
 
@@ -169,6 +184,8 @@ Next.js PWA <-> API 서버 <-> AI 상담/요약 모듈
 5. 추천 후보를 점수화하고 "가능성 높음 / 확인 필요 / 가능성 낮음"으로 분류한다.
 6. AI가 후보 혜택을 쉬운 말로 설명한다.
 7. 확정 판단이 필요한 조건은 추가 질문으로 사용자에게 묻는다.
+
+> **구현 전략:** 위 흐름은 **하드필터 → 하이브리드 검색(전문검색 + 벡터, RRF) → LLM 판단** 구조로 구축한다. §4.3의 facet 컬럼이 3단계 구조화 필터의 토대가 된다. 한국어 전문검색은 Postgres 기본 FTS만으로는 정확도가 부족하므로 **pgroonga/pg_bigm 확장 도입을 검토**한다.
 
 ### 6.2. 추천 점수 기준
 

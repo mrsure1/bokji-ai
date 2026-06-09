@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
-/* 복지AI 디자인 토큰 (확정 디자인 기준) */
+/* bokji-ai 디자인 토큰 (확정 디자인 기준) */
 @theme {
   --color-appbg: #f4f6f3;
   --color-card: #ffffff;

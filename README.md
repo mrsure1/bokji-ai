@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# bokji-ai
 
-## Getting Started
+공공 복지 데이터를 수집·요약하고, 자연어 상담으로 맞춤 혜택을 안내하는 PWA 기반 복지 상담 앱입니다.
 
-First, run the development server:
+## 기술 스택
+
+- Next.js 16 · TypeScript · Tailwind CSS
+- Supabase (PostgreSQL + pgvector)
+- 공공 API: 복지로 · 정부24 · 사회서비스 공통코드
+
+## 시작하기
 
 ```bash
+cp .env.example .env.local   # 환경 변수 설정
+npm install
+npm run check-env            # 필수 키 점검
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+[http://localhost:3000](http://localhost:3000) 에서 확인합니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## API 연결 테스트
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run test-bokjiro          # 복지로 (중앙부처)
+npm run test-gov24            # 정부24 공공서비스
+npm run test-ssis-commoncode  # 사회서비스 공통코드
+```
 
-## Learn More
+## 문서
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [PRD](docs/PRD.md)
+- [TRD](docs/TRD.md)
+- [Architecture](docs/Architecture.md)

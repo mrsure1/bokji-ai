@@ -4,7 +4,7 @@ import { AppProvider } from "@/store/AppStore";
 import { BottomNav } from "@/components/BottomNav";
 
 export const metadata: Metadata = {
-  title: "복지AI",
+  title: "bokji-ai",
   description: "내 상황에 맞는 복지 혜택을 쉬운 말로 찾고 마감 전에 챙기세요.",
 };
 

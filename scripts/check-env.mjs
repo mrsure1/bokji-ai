@@ -20,8 +20,12 @@ const GROUPS = {
     "DATABASE_URL",
   ],
   "인증": ["AUTH_SECRET", "AUTH_URL"],
-  "OpenAI (상담/요약)": ["OPENAI_API_KEY"],
-  "공공데이터 (복지 수집)": ["DATA_GO_KR_SERVICE_KEY"],
+  "Gemini (상담/요약)": ["GEMINI_API_KEY"],
+  "공공데이터 (복지 수집)": [
+    "DATA_GO_KR_SERVICE_KEY",
+    "GOV24_SERVICE_KEY",
+    "SOCIALSERVICE_API_KEY",
+  ],
   "SMS (선택)": ["SOLAPI_API_KEY", "SOLAPI_API_SECRET", "SMS_SENDER_NUMBER"],
   "이메일 (선택)": ["RESEND_API_KEY", "EMAIL_FROM"],
   "Cron": ["CRON_SECRET"],
@@ -52,7 +56,7 @@ function loadEnvFile(path) {
 const env = loadEnvFile(envPath);
 let allRequiredOk = true;
 
-console.log("\n🔑 WelfareFit 환경 변수 점검\n");
+console.log("\n🔑 bokji-ai 환경 변수 점검\n");
 console.log(`파일: ${envPath}`);
 console.log(`존재: ${existsSync(envPath) ? "✅" : "❌ (.env.local 없음 — .env.example을 복사하세요)"}\n`);
 
@@ -82,8 +86,11 @@ if (allRequiredOk) {
   console.log("❌ 필수 환경 변수가 비어 있습니다. 아래 발급 가이드를 참고하세요.\n");
   console.log("발급 링크:");
   console.log("  • Supabase    → https://supabase.com/dashboard");
-  console.log("  • OpenAI      → https://platform.openai.com/api-keys");
-  console.log("  • 공공데이터  → https://www.data.go.kr (복지로 API 2종 활용신청)");
+  console.log("  • Gemini      → https://aistudio.google.com/apikey");
+  console.log("  • 공공데이터  → https://www.data.go.kr");
+  console.log("      - 복지로 중앙/지자체 (DATA_GO_KR_SERVICE_KEY)");
+  console.log("      - 정부24 혜택 (GOV24_SERVICE_KEY)");
+  console.log("      - 사회서비스 공통코드 (SOCIALSERVICE_API_KEY)");
   console.log("  • Solapi SMS  → https://solapi.com (선택)");
   console.log("  • Resend      → https://resend.com/api-keys (선택)\n");
   process.exit(1);

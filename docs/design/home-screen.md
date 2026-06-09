@@ -1,6 +1,6 @@
-# 복지AI · 홈(첫 화면) 디자인 명세서
+# bokji-ai · 홈(첫 화면) 디자인 명세서
 
-> 앱 이름: **복지AI** · 화면: 홈(첫 진입) · 플랫폼: 모바일 PWA (기준 360×812)
+> 앱 이름: **bokji-ai** · 화면: 홈(첫 진입) · 플랫폼: 모바일 PWA (기준 360×812)
 > 컨셉: **오늘의 한 건(시안 2) × 마감 타임라인(시안 5) 하이브리드**
 > 최종 업데이트: 2026-06-05
 
@@ -8,7 +8,7 @@
 
 ## 1. 화면 목적
 
-복지AI에 진입한 사용자가 **"지금 당장 무엇을 해야 하는지"** 를 0초 만에 알게 한다.
+bokji-ai에 진입한 사용자가 **"지금 당장 무엇을 해야 하는지"** 를 0초 만에 알게 한다.
 수십 개의 추천을 나열해 결정 피로를 주는 대신, **가장 급하고 잘 맞는 단 하나**를 크게 보여 신청까지 직진시키고,
 그 뒤로 **마감 임박순 타임라인**을 이어 붙여 "선제 알림 → 즉시 행동"이라는 서비스 핵심 가치(PRD 2장)를 화면으로 구현한다.
 
@@ -31,13 +31,13 @@
 
 전체 스크롤 펼친 모습 / 첫 진입 시 보이는 영역(스크롤 단서 포함):
 
-![복지AI 홈 - 전체](../design-mockups/screenshots/home-hybrid-tall.png)
+![bokji-ai 홈 - 전체](../design-mockups/screenshots/home-hybrid-tall.png)
 
-![복지AI 홈 - 첫 진입](../design-mockups/screenshots/home-hybrid-phone.png)
+![bokji-ai 홈 - 첫 진입](../design-mockups/screenshots/home-hybrid-phone.png)
 
 설계 의도 주석본:
 
-![복지AI 홈 - 주석](../design-mockups/screenshots/home-hybrid-full.png)
+![bokji-ai 홈 - 주석](../design-mockups/screenshots/home-hybrid-full.png)
 
 > 인터랙티브 원본: [`docs/design-mockups/home-hybrid.html`](../design-mockups/home-hybrid.html)
 > 재현: `node docs/design-mockups/render-hybrid.mjs`
@@ -50,7 +50,7 @@
 ┌─────────────────────────────┐
 │ Status bar                   │
 ├─────────────────────────────┤
-│ ① 헤더    복지AI      🔔(뱃지) │  AppHeader
+│ ① 헤더    bokji-ai      🔔(뱃지) │  AppHeader
 ├─────────────────────────────┤
 │ ② 인사/맥락                   │  GreetingLine
 │   "지영님, 3일 뒤 마감이에요"   │

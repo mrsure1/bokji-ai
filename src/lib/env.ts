@@ -25,14 +25,15 @@ export const serverEnv = {
   get authSecret() {
     return optional("AUTH_SECRET");
   },
-  get openaiApiKey() {
-    return optional("OPENAI_API_KEY");
+  /** Google Gemini — https://aistudio.google.com/apikey */
+  get geminiApiKey() {
+    return optional("GEMINI_API_KEY");
   },
-  get openaiModel() {
-    return optional("OPENAI_MODEL") ?? "gpt-4o-mini";
+  get geminiModel() {
+    return optional("GEMINI_MODEL") ?? "gemini-2.5-flash";
   },
-  get openaiEmbeddingModel() {
-    return optional("OPENAI_EMBEDDING_MODEL") ?? "text-embedding-3-small";
+  get geminiEmbeddingModel() {
+    return optional("GEMINI_EMBEDDING_MODEL") ?? "gemini-embedding-001";
   },
   get dataGoKrServiceKey() {
     return optional("DATA_GO_KR_SERVICE_KEY");
@@ -42,6 +43,20 @@ export const serverEnv = {
   },
   get bokjiroLocalApiUrl() {
     return optional("BOKJIRO_LOCAL_API_URL");
+  },
+  /** 정부24 공공서비스(혜택) — api.odcloud.kr (복지로와 별도 활용신청) */
+  get gov24ServiceKey() {
+    return optional("GOV24_SERVICE_KEY");
+  },
+  get gov24ApiBaseUrl() {
+    return optional("GOV24_API_BASE_URL");
+  },
+  /** 사회서비스 전자바우처 — api.socialservice.or.kr (복지로·정부24와 별도 키) */
+  get socialserviceApiKey() {
+    return optional("SOCIALSERVICE_API_KEY");
+  },
+  get socialserviceCommonApiBaseUrl() {
+    return optional("SOCIALSERVICE_COMMON_API_BASE_URL");
   },
   get cronSecret() {
     return optional("CRON_SECRET");
@@ -59,7 +74,7 @@ export const serverEnv = {
     return optional("RESEND_API_KEY");
   },
   get emailFrom() {
-    return optional("EMAIL_FROM") ?? "WelfareFit <noreply@localhost>";
+    return optional("EMAIL_FROM") ?? "bokji-ai <noreply@localhost>";
   },
 } as const;
 
@@ -83,7 +98,7 @@ export function checkRequiredEnv(): { ok: boolean; missing: string[] } {
     "NEXT_PUBLIC_SUPABASE_ANON_KEY",
     "SUPABASE_SERVICE_ROLE_KEY",
     "DATABASE_URL",
-    "OPENAI_API_KEY",
+    "GEMINI_API_KEY",
     "DATA_GO_KR_SERVICE_KEY",
   ] as const;
 
@@ -92,10 +107,18 @@ export function checkRequiredEnv(): { ok: boolean; missing: string[] } {
 }
 
 /** 특정 기능 사용 시 필수 키 강제 */
-export function requireOpenAI(): string {
-  return required("OPENAI_API_KEY");
+export function requireGemini(): string {
+  return required("GEMINI_API_KEY");
 }
 
 export function requireDataGoKr(): string {
   return required("DATA_GO_KR_SERVICE_KEY");
+}
+
+export function requireGov24(): string {
+  return required("GOV24_SERVICE_KEY");
+}
+
+export function requireSocialService(): string {
+  return required("SOCIALSERVICE_API_KEY");
 }
