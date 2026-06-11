@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { CategoryBar } from "@/components/CategoryBar";
 import { ProgressScreen } from "@/components/ProgressScreen";
 import { HOME_CATEGORIES } from "@/lib/categories";
 import { ddayLabel } from "@/lib/data";
-import type { Benefit } from "@/lib/types";
+import type { Benefit, UserProfile } from "@/lib/types";
 import { useApp } from "@/store/AppStore";
 
 interface HomeFeed {
@@ -16,8 +17,26 @@ interface HomeFeed {
   profileFilled: boolean;
 }
 
+// 입력된 정보가 하나도 없으면 "처음 사용하는 사람"으로 본다.
+function isProfileEmpty(p: UserProfile): boolean {
+  return (
+    !p.name &&
+    !p.regionSido &&
+    !p.birthYear &&
+    !p.currentStatus &&
+    !p.housingType &&
+    !p.incomeBand &&
+    p.interests.length === 0 &&
+    p.householdSituations.length === 0
+  );
+}
+
+// 앱을 새로 열 때(풀 로드) 온보딩 분기를 1회만 수행하기 위한 가드. 새로고침 시 초기화된다.
+let onboardingChecked = false;
+
 export default function HomePage() {
-  const { userId, ready, isSaved, toggleSave, unreadCount } = useApp();
+  const router = useRouter();
+  const { userId, ready, profile, isSaved, toggleSave, unreadCount } = useApp();
   const [feed, setFeed] = useState<HomeFeed | null>(null);
   const [loading, setLoading] = useState(true);
   const [switching, setSwitching] = useState(false);
@@ -25,6 +44,14 @@ export default function HomePage() {
   const timelineRef = useRef<HTMLDivElement>(null);
   const [showCue, setShowCue] = useState(true);
   const [revealed, setRevealed] = useState(false); // 진행률 100% 후 콘텐츠 노출
+
+  // 온보딩: 첫 방문(프로필 미입력)이면 내 정보 입력 화면으로, 입력했으면 홈 그대로.
+  // 앱 풀 로드당 1회만 분기하므로, 이후 홈 탭을 눌러 돌아오는 것은 막지 않는다.
+  useEffect(() => {
+    if (!ready || onboardingChecked) return;
+    onboardingChecked = true;
+    if (isProfileEmpty(profile)) router.replace("/profile");
+  }, [ready, profile, router]);
 
   // 초기 로드 (전체 카테고리)
   useEffect(() => {

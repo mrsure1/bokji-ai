@@ -171,6 +171,16 @@ export default function ProfilePage() {
         <h1 className="text-xl font-bold">내 정보</h1>
       </header>
 
+      {percent === 0 && (
+        <div className="mb-4 rounded-2xl border border-[#cfe9d8] bg-brand-light px-4 py-3.5">
+          <b className="text-[13.5px] text-brand-dark">처음 오셨네요! 먼저 내 정보를 알려주세요</b>
+          <p className="mt-1 text-xs leading-snug text-[#3a5a47]">
+            지역·연령·상황에 딱 맞는 혜택을 찾아드려요. 한 번 입력하면 다음부터는 바로 홈으로
+            들어가요.
+          </p>
+        </div>
+      )}
+
       <div className="mb-2 flex items-center gap-4 rounded-2xl border border-line bg-card p-[18px]">
         <div
           className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full"
