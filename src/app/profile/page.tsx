@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { EditSheet, type EditSheetConfig } from "@/components/EditSheet";
 import { ProgressScreen } from "@/components/ProgressScreen";
@@ -17,6 +18,7 @@ type FieldKey =
   | "interests";
 
 export default function ProfilePage() {
+  const router = useRouter();
   const { ready, profile, saveProfile } = useApp();
   const [editing, setEditing] = useState<FieldKey | null>(null);
   const [sigunguStep, setSigunguStep] = useState<string | null>(null); // 시도 선택 후 시군구 입력
@@ -260,8 +262,15 @@ export default function ProfilePage() {
 
       <p className="px-1 text-[11px] leading-relaxed text-muted">
         입력한 정보는 맞춤 추천과 알림에만 사용돼요. 모든 항목은 선택 입력이며 언제든 지울 수
-        있어요.
+        있어요. 변경 사항은 자동으로 저장돼요.
       </p>
+
+      <button
+        onClick={() => router.push("/")}
+        className="mt-5 w-full rounded-2xl bg-brand py-4 text-center font-bold text-white shadow-[0_10px_20px_-12px_rgba(24,160,88,0.6)] active:scale-[0.99]"
+      >
+        저장하고 홈으로 가기
+      </button>
 
       {editing && (
         <EditSheet

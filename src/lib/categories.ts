@@ -16,7 +16,7 @@ export const HOME_CATEGORIES: HomeCategory[] = [
   { key: "job", label: "일자리", themes: ["고용·창업", "일자리"] },
   { key: "edu", label: "교육", themes: ["보육·교육", "교육", "보육"] },
   { key: "living", label: "생계", themes: ["생활안정", "생활지원", "서민금융"] },
-  { key: "health", label: "건강", themes: ["보건·의료", "신체건강", "정신건강"] },
+  { key: "health", label: "의료", themes: ["보건·의료", "신체건강", "정신건강"] },
   { key: "care", label: "돌봄", themes: ["보호·돌봄", "입양·위탁"] },
   { key: "birth", label: "출산", themes: ["임신·출산"] },
   { key: "farm", label: "농림", themes: ["농림축산어업"] },

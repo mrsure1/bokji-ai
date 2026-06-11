@@ -34,6 +34,8 @@ function isProfileEmpty(p: UserProfile): boolean {
 // 앱을 새로 열 때(풀 로드) 온보딩 분기를 1회만 수행하기 위한 가드. 새로고침 시 초기화된다.
 let onboardingChecked = false;
 
+const HIDDEN_CATS_KEY = "bokji-ai:hiddenCategories";
+
 export default function HomePage() {
   const router = useRouter();
   const { userId, ready, profile, isSaved, toggleSave, unreadCount } = useApp();
@@ -41,6 +43,16 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [switching, setSwitching] = useState(false);
   const [category, setCategory] = useState("all");
+  const [editingCats, setEditingCats] = useState(false);
+  // 숨긴 카테고리 (기기별 localStorage). 카테고리 바는 revealed 이후에만 렌더되어 하이드레이션 불일치 없음.
+  const [hiddenCats, setHiddenCats] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      return JSON.parse(localStorage.getItem(HIDDEN_CATS_KEY) ?? "[]");
+    } catch {
+      return [];
+    }
+  });
   const timelineRef = useRef<HTMLDivElement>(null);
   const [showCue, setShowCue] = useState(true);
   const [revealed, setRevealed] = useState(false); // 진행률 100% 후 콘텐츠 노출
@@ -73,9 +85,8 @@ export default function HomePage() {
     };
   }, [ready, userId]);
 
-  // 카테고리 선택 → 해당 카테고리로 다시 불러옴 (전체 화면 로더 대신 가벼운 전환)
-  const selectCategory = async (key: string) => {
-    if (key === category || switching) return;
+  // 카테고리 피드 로드 (전체 화면 로더 대신 가벼운 전환)
+  const loadCategory = async (key: string) => {
     setCategory(key);
     setSwitching(true);
     try {
@@ -84,6 +95,30 @@ export default function HomePage() {
     } finally {
       setSwitching(false);
     }
+  };
+
+  const selectCategory = (key: string) => {
+    if (key === category || switching) return;
+    loadCategory(key);
+  };
+
+  // 카테고리 숨김/표시 토글 + 저장
+  const toggleHiddenCat = (key: string) => {
+    setHiddenCats((cur) => {
+      const next = cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key];
+      try {
+        localStorage.setItem(HIDDEN_CATS_KEY, JSON.stringify(next));
+      } catch {
+        /* 무시 */
+      }
+      return next;
+    });
+  };
+
+  // 편집 종료 — 현재 선택한 카테고리가 숨겨졌으면 '전체'로 되돌림
+  const exitEditCats = () => {
+    setEditingCats(false);
+    if (category !== "all" && hiddenCats.includes(category)) loadCategory("all");
   };
 
   const categoryLabel = HOME_CATEGORIES.find((c) => c.key === category)?.label ?? "";
@@ -138,8 +173,25 @@ export default function HomePage() {
         </Link>
       </header>
 
-      {/* 카테고리 선택 (가로 스크롤) */}
-      <CategoryBar value={category} onSelect={selectCategory} />
+      {/* 카테고리 선택 + 편집(숨기기) */}
+      <div className="mb-2 flex items-center justify-between px-1">
+        <span className="text-[12px] font-semibold text-muted">
+          {editingCats ? "× 눌러 숨기기 · + 눌러 다시 보기" : "관심 카테고리"}
+        </span>
+        <button
+          onClick={() => (editingCats ? exitEditCats() : setEditingCats(true))}
+          className="text-[11.5px] font-semibold text-brand"
+        >
+          {editingCats ? "완료" : "편집"}
+        </button>
+      </div>
+      <CategoryBar
+        value={category}
+        onSelect={selectCategory}
+        editing={editingCats}
+        hidden={hiddenCats}
+        onToggleHidden={toggleHiddenCat}
+      />
 
       <div className={switching ? "pointer-events-none opacity-40 transition-opacity" : "transition-opacity"}>
       {!hero ? (
