@@ -58,16 +58,6 @@ export default function NotificationsPage() {
         <Link href="/profile" aria-label="알림 설정" className="text-base">⚙</Link>
       </header>
 
-      <div className="mb-4 flex items-center gap-2.5 rounded-2xl border border-[#d9e6fb] bg-sky-light px-3.5 py-3">
-        <span className="text-[15px]">🔔</span>
-        <p className="flex-1 text-xs leading-snug text-[#2c5fa8]">
-          {alarmsOn
-            ? "마감 임박·새 혜택 소식을 앱에서 모아 알려드려요"
-            : "앱 알림이 꺼져 있어요. 설정에서 켜면 소식을 받을 수 있어요"}
-        </p>
-        <Link href="/profile" className="text-[11.5px] font-semibold text-sky">설정</Link>
-      </div>
-
       {!alarmsOn ? (
         <div className="mt-20 text-center">
           <p className="text-4xl">🔕</p>

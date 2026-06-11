@@ -229,7 +229,6 @@ function urgencyScore(dday: number | null): number {
   return 5;
 }
 
-const URGENT_DDAY = 14; // 이 일수 이하만 "마감 임박"으로 본다
 
 export async function getHomeFeed(
   userId: string | null,
