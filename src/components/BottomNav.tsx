@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { NavIcon } from "@/components/NavIcon";
 
 const TABS = [
-  { href: "/", label: "홈", icon: "🏠" },
-  { href: "/chat", label: "상담", icon: "💬" },
-  { href: "/saved", label: "보관함", icon: "🔖" },
-  { href: "/profile", label: "내 정보", icon: "👤" },
+  { href: "/", label: "홈", icon: "home" },
+  { href: "/chat", label: "상담", icon: "chat" },
+  { href: "/saved", label: "보관함", icon: "bookmark" },
+  { href: "/profile", label: "내 정보", icon: "user" },
 ] as const;
 
 export function BottomNav() {
@@ -26,11 +27,11 @@ export function BottomNav() {
             aria-current={active ? "page" : undefined}
           >
             <span
-              className={`flex h-7 w-7 items-center justify-center rounded-lg text-base ${
-                active ? "bg-brand-light" : ""
+              className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${
+                active ? "bg-brand-light text-brand" : "text-[#9aa0a6]"
               }`}
             >
-              {t.icon}
+              <NavIcon id={t.icon} className="h-[19px] w-[19px]" />
             </span>
             <span className={active ? "font-semibold text-brand" : "text-muted"}>{t.label}</span>
           </Link>
