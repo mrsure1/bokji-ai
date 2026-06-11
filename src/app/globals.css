@@ -52,6 +52,27 @@ body {
 }
 .animate-bob { animation: bob 1.5s ease-in-out infinite; }
 
+/* 진행률 바 위를 흐르는 빛 (로딩 전환) */
+@keyframes progress-shimmer {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(260%); }
+}
+.animate-progress-shimmer { animation: progress-shimmer 1.3s ease-in-out infinite; }
+
+/* 로딩 아이콘 타일 뒤 숨쉬는 글로우 */
+@keyframes icon-glow {
+  0%, 100% { opacity: 0.45; transform: scale(0.94); }
+  50% { opacity: 0.85; transform: scale(1.06); }
+}
+.animate-icon-glow { animation: icon-glow 2.2s ease-in-out infinite; }
+
+/* 채팅 입력 중 무한 슬라이드 바 (그레이 톤, 완료 시점 미정) */
+@keyframes bar-indeterminate {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(360%); }
+}
+.animate-bar-indeterminate { animation: bar-indeterminate 1.15s ease-in-out infinite; }
+
 @media (prefers-reduced-motion: reduce) {
-  .animate-pulse-ring, .animate-bob { animation: none; }
+  .animate-pulse-ring, .animate-bob, .animate-progress-shimmer, .animate-icon-glow, .animate-bar-indeterminate { animation: none; }
 }

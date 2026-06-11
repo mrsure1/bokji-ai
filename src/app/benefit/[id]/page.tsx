@@ -1,21 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ddayLabel, FIT_META, getBenefit } from "@/lib/data";
+import { ProgressScreen } from "@/components/ProgressScreen";
+import { ddayLabel, FIT_META } from "@/lib/data";
 import type { Benefit } from "@/lib/types";
 import { useApp } from "@/store/AppStore";
 
 export default function BenefitDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const seed = getBenefit(id);
-  const [benefit, setBenefit] = useState<Benefit | undefined>(seed);
-  const [loading, setLoading] = useState(!seed);
+  const router = useRouter();
+  const [benefit, setBenefit] = useState<Benefit | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [revealed, setRevealed] = useState(false); // 진행률 100% 후 콘텐츠 노출
   const { isSaved, toggleSave, isChecked, toggleDoc } = useApp();
 
   useEffect(() => {
-    if (seed) return;
     let cancelled = false;
     (async () => {
       try {
@@ -31,13 +32,20 @@ export default function BenefitDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [id, seed]);
+  }, [id]);
 
-  if (loading) {
+  if (!revealed) {
     return (
-      <main className="flex flex-1 items-center justify-center p-8 text-sm text-muted">
-        불러오는 중…
-      </main>
+      <ProgressScreen
+        done={!loading}
+        onDone={() => setRevealed(true)}
+        icon="doc"
+        messages={[
+          "공고를 불러오고 있어요",
+          "쉬운 말로 정리하는 중이에요",
+          "준비 서류를 확인하고 있어요",
+        ]}
+      />
     );
   }
 
@@ -66,14 +74,11 @@ export default function BenefitDetailPage() {
   return (
     <main className="flex-1 pb-24">
       <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-line bg-card/95 px-4 py-3.5 backdrop-blur">
-        <Link href="/chat" aria-label="뒤로" className="text-lg text-[#3a3d40]">
+        <button onClick={() => router.back()} aria-label="뒤로" className="text-lg text-[#3a3d40]">
           ‹
-        </Link>
+        </button>
         <b className="flex-1 truncate text-base">{benefit.name}</b>
-        <button
-          onClick={() => toggleSave(benefit.id)}
-          className="text-xs font-semibold text-brand"
-        >
+        <button onClick={() => toggleSave(benefit)} className="text-xs font-semibold text-brand">
           {saved ? "저장됨" : "저장"}
         </button>
       </header>
@@ -106,16 +111,36 @@ export default function BenefitDetailPage() {
               </div>
             ))}
           </dl>
+          {benefit.detail.cautions && (
+            <p className="mt-3 rounded-lg bg-amber-light px-3 py-2 text-[12px] leading-snug text-amber-dark">
+              ⚠️ {benefit.detail.cautions}
+            </p>
+          )}
         </section>
+
+        {benefit.detail.terms.length > 0 && (
+          <section className="rounded-2xl border border-line bg-card p-4">
+            <h2 className="mb-3 font-display text-sm font-bold">어려운 용어, 쉽게</h2>
+            <dl className="space-y-2.5">
+              {benefit.detail.terms.map((t) => (
+                <div key={t.term} className="rounded-lg bg-[#f7f7f5] px-3 py-2.5">
+                  <dt className="text-[12.5px] font-bold text-brand-dark">{t.term}</dt>
+                  <dd className="mt-0.5 text-[12.5px] leading-snug text-[#3a3d40]">{t.plain}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )}
 
         {benefit.documents.length > 0 && (
           <section className="rounded-2xl border border-line bg-card p-4">
-            <h2 className="mb-3 font-display text-sm font-bold">준비할 서류</h2>
+            <h2 className="mb-1 font-display text-sm font-bold">준비할 서류</h2>
+            <p className="mb-3 text-[11px] text-muted">체크하면 보관함에 저장돼요</p>
             <ul className="space-y-2">
               {benefit.documents.map((doc) => (
                 <li key={doc}>
                   <button
-                    onClick={() => toggleDoc(benefit.id, doc)}
+                    onClick={() => toggleDoc(benefit, doc)}
                     className="flex w-full items-center gap-2 rounded-lg bg-[#f7f7f5] px-3 py-2 text-left text-[13px]"
                   >
                     <span>{isChecked(benefit.id, doc) ? "✅" : "⬜"}</span>

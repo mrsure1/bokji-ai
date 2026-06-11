@@ -6,7 +6,6 @@
 //  - matched=false(무신호/매칭 0건)면 빈 후보를 반환해, 챗봇이 "없음"을 정직하게 말하도록 한다.
 //    (예전처럼 최근 항목으로 억지 폴백 추천하지 않는다.)
 
-import { SEED_BENEFITS } from "@/lib/benefits/seed";
 import { canonSido, extractSignals, sidoDbPrefix } from "@/lib/benefits/keywords";
 import { createServiceClient } from "@/lib/supabase/server";
 
@@ -53,25 +52,6 @@ interface BenefitSearchRow {
 const SELECT =
   "id, title, plain_summary, benefit_summary, target_summary, provider, source, category, region_scope, region_sido, themes, life_stages, household_types, deadline";
 
-function supabaseReady(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY,
-  );
-}
-
-function seedCatalog(): CatalogItem[] {
-  return SEED_BENEFITS.map((b) => ({
-    id: b.id,
-    name: b.name,
-    summary: b.summary,
-    category: b.category,
-    region: b.region,
-    target: b.conditions.join(", "),
-    provider: b.agency,
-    source: "seed",
-  }));
-}
-
 function toCatalogItem(row: BenefitSearchRow): CatalogItem {
   return {
     id: row.id,
@@ -111,8 +91,6 @@ export async function searchCatalog(
   profile?: SearchProfile,
   limit = 40,
 ): Promise<SearchResult> {
-  if (!supabaseReady()) return { items: seedCatalog().slice(0, limit), matched: false };
-
   // 프로필 관심사·고용상태도 신호로 합침
   const extraText = [profile?.jobStatus, ...(profile?.interests ?? [])].filter(Boolean).join(" ");
   const sig = extractSignals(`${message} ${extraText}`);

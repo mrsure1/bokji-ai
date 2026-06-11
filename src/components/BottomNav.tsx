@@ -12,14 +12,12 @@ const TABS = [
 
 export function BottomNav() {
   const pathname = usePathname();
-  // 탭 화면에서만 노출 (알림·상세는 뒤로가기 헤더 사용)
-  const isTab = TABS.some((t) => t.href === pathname);
-  if (!isTab) return null;
-
+  // 모든 화면에 노출한다. 상세·알림 등에서는 헤더의 뒤로가기와 함께 공존한다.
   return (
     <nav className="sticky bottom-0 z-30 flex h-16 items-center justify-around border-t border-line bg-card/95 backdrop-blur">
       {TABS.map((t) => {
-        const active = t.href === pathname;
+        // 홈은 정확히 일치할 때만, 나머지는 하위 경로까지 활성 표시
+        const active = t.href === "/" ? pathname === "/" : pathname.startsWith(t.href);
         return (
           <Link
             key={t.href}

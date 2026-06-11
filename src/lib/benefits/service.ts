@@ -1,18 +1,10 @@
+import { ensureSummary } from "@/lib/ai/summary-service";
 import { dbRowToBenefit, dbRowToCatalogItem } from "@/lib/benefits/map-db";
-import { SEED_BENEFITS } from "@/lib/benefits/seed";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { TablesInsert } from "@/lib/supabase/database.types";
 import type { Benefit } from "@/lib/types";
 
-function supabaseReady(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY,
-  );
-}
-
 export async function listBenefits(limit = 80): Promise<Benefit[]> {
-  if (!supabaseReady()) return SEED_BENEFITS;
-
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from("benefits")
@@ -20,41 +12,41 @@ export async function listBenefits(limit = 80): Promise<Benefit[]> {
     .order("updated_at", { ascending: false })
     .limit(limit);
 
-  if (error || !data?.length) return SEED_BENEFITS;
+  if (error || !data?.length) return [];
   return data.map((row) => dbRowToBenefit(row));
 }
 
+/**
+ * 혜택 상세 조회 — 쉬운 말 요약(PRD 3.3)이 없으면 이 시점에 생성해 캐싱한다.
+ * 요약 생성 실패 시에도 원문 필드 기반으로 항상 동작한다.
+ */
 export async function getBenefitById(id: string): Promise<Benefit | undefined> {
-  const seed = SEED_BENEFITS.find((b) => b.id === id);
-  if (!supabaseReady()) return seed;
-
   const supabase = createServiceClient();
   const { data: row } = await supabase.from("benefits").select("*").eq("id", id).maybeSingle();
-  if (!row) return seed;
+  if (!row) return undefined;
 
-  const { data: summary } = await supabase
+  const { data: existing } = await supabase
     .from("benefit_summaries")
     .select("*")
     .eq("benefit_id", id)
     .maybeSingle();
 
+  const summary = await ensureSummary(row, existing);
   return dbRowToBenefit(row, summary);
 }
 
-export async function listCatalogForLlm(limit = 60) {
-  if (!supabaseReady()) {
-    return SEED_BENEFITS.map((b) => ({
-      id: b.id,
-      name: b.name,
-      summary: b.summary,
-      category: b.category,
-      region: b.region,
-      target: b.conditions.join(", "),
-      provider: b.agency,
-      source: "seed",
-    }));
-  }
+export async function listBenefitsByIds(ids: string[]): Promise<Benefit[]> {
+  if (!ids.length) return [];
+  const supabase = createServiceClient();
+  const [{ data: rows }, { data: summaries }] = await Promise.all([
+    supabase.from("benefits").select("*").in("id", ids),
+    supabase.from("benefit_summaries").select("*").in("benefit_id", ids),
+  ]);
+  const summaryMap = new Map((summaries ?? []).map((s) => [s.benefit_id, s]));
+  return (rows ?? []).map((row) => dbRowToBenefit(row, summaryMap.get(row.id)));
+}
 
+export async function listCatalogForLlm(limit = 60) {
   const supabase = createServiceClient();
   const { data } = await supabase
     .from("benefits")
@@ -62,18 +54,7 @@ export async function listCatalogForLlm(limit = 60) {
     .order("updated_at", { ascending: false })
     .limit(limit);
 
-  if (!data?.length) {
-    return SEED_BENEFITS.map((b) => ({
-      id: b.id,
-      name: b.name,
-      summary: b.summary,
-      category: b.category,
-      region: b.region,
-      target: b.conditions.join(", "),
-      provider: b.agency,
-      source: "seed",
-    }));
-  }
+  if (!data?.length) return [];
 
   return data.map((row) =>
     dbRowToCatalogItem({
@@ -99,8 +80,6 @@ export async function listCatalogForLlm(limit = 60) {
 }
 
 export async function upsertBenefitRow(row: TablesInsert<"benefits">): Promise<string | null> {
-  if (!supabaseReady()) return null;
-
   const supabase = createServiceClient();
   const { data: existing } = await supabase
     .from("benefits")
@@ -121,8 +100,4 @@ export async function upsertBenefitRow(row: TablesInsert<"benefits">): Promise<s
   const { data, error } = await supabase.from("benefits").insert(payload).select("id").single();
   if (error) throw new Error(`benefits insert: ${error.message}`);
   return data.id;
-}
-
-export function countSeedBenefits(): number {
-  return SEED_BENEFITS.length;
 }

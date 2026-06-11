@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ddayLabel, getBenefit } from "@/lib/data";
+import { ProgressScreen } from "@/components/ProgressScreen";
+import { ddayLabel } from "@/lib/data";
 import { useApp } from "@/store/AppStore";
 
 type Filter = "all" | "urgent" | "always";
@@ -13,14 +14,26 @@ const FILTERS: { key: Filter; label: string }[] = [
 ];
 
 export default function SavedPage() {
-  const { savedIds, isChecked, toggleDoc, toggleSave } = useApp();
+  const { ready, savedItems, isChecked, toggleDoc, toggleSave } = useApp();
   const [filter, setFilter] = useState<Filter>("all");
+  const [revealed, setRevealed] = useState(false);
 
-  const benefits = savedIds.map(getBenefit).filter((b): b is NonNullable<typeof b> => b !== undefined);
+  const benefits = savedItems.map((s) => s.benefit);
   const urgentCount = benefits.filter((b) => b.dday !== null && b.dday <= 14).length;
   const visible = benefits.filter((b) =>
-    filter === "urgent" ? b.dday !== null && b.dday <= 14 : filter === "always" ? b.dday === null : true
+    filter === "urgent" ? b.dday !== null && b.dday <= 14 : filter === "always" ? b.dday === null : true,
   );
+
+  if (!revealed) {
+    return (
+      <ProgressScreen
+        done={ready}
+        onDone={() => setRevealed(true)}
+        icon="bookmark"
+        messages={["보관함을 불러오고 있어요", "저장한 혜택을 정리하는 중이에요"]}
+      />
+    );
+  }
 
   return (
     <main className="flex-1 px-5 pb-24 pt-5">
@@ -73,7 +86,7 @@ export default function SavedPage() {
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <Link href={`/benefit/${b.id}`} className="text-[15px] font-bold tracking-tight">
+                  <Link href={`/benefit/${b.id}`} className="text-[15px] font-bold leading-snug tracking-tight">
                     {b.name}
                   </Link>
                   <span
@@ -85,40 +98,48 @@ export default function SavedPage() {
                   </span>
                 </div>
 
-                <p className="mb-2 mt-2.5 text-xs text-muted">
-                  신청 서류 <b className="text-brand-dark">{done}/{b.documents.length}</b> 준비됨
-                </p>
-                <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-[#eef0ee]">
-                  <span
-                    className="block h-full rounded-full bg-brand transition-all"
-                    style={{ width: `${(done / b.documents.length) * 100}%` }}
-                  />
-                </div>
+                {b.documents.length > 0 ? (
+                  <>
+                    <p className="mb-2 mt-2.5 text-xs text-muted">
+                      신청 서류 <b className="text-brand-dark">{done}/{b.documents.length}</b> 준비됨
+                    </p>
+                    <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-[#eef0ee]">
+                      <span
+                        className="block h-full rounded-full bg-brand transition-all"
+                        style={{ width: `${(done / b.documents.length) * 100}%` }}
+                      />
+                    </div>
 
-                <ul className="mb-3 flex flex-col gap-2.5">
-                  {b.documents.map((doc) => {
-                    const checked = isChecked(b.id, doc);
-                    return (
-                      <li key={doc}>
-                        <button
-                          onClick={() => toggleDoc(b.id, doc)}
-                          className={`flex w-full items-center gap-2.5 text-[13px] ${
-                            checked ? "text-muted" : "text-[#3a3d40]"
-                          }`}
-                        >
-                          <span
-                            className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md border-[1.5px] text-[11px] ${
-                              checked ? "border-brand bg-brand text-white" : "border-[#cfd4cf]"
-                            }`}
-                          >
-                            {checked ? "✓" : ""}
-                          </span>
-                          {doc}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
+                    <ul className="mb-3 flex flex-col gap-2.5">
+                      {b.documents.map((doc) => {
+                        const checked = isChecked(b.id, doc);
+                        return (
+                          <li key={doc}>
+                            <button
+                              onClick={() => toggleDoc(b, doc)}
+                              className={`flex w-full items-center gap-2.5 text-left text-[13px] ${
+                                checked ? "text-muted" : "text-[#3a3d40]"
+                              }`}
+                            >
+                              <span
+                                className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md border-[1.5px] text-[11px] ${
+                                  checked ? "border-brand bg-brand text-white" : "border-[#cfd4cf]"
+                                }`}
+                              >
+                                {checked ? "✓" : ""}
+                              </span>
+                              {doc}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </>
+                ) : (
+                  <p className="mb-3 mt-2.5 text-xs leading-snug text-muted">
+                    {b.summary || "상세 화면에서 쉬운 말 요약을 확인해 보세요."}
+                  </p>
+                )}
 
                 <div className="flex gap-2">
                   <a
@@ -130,7 +151,7 @@ export default function SavedPage() {
                     신청하러 가기 →
                   </a>
                   <button
-                    onClick={() => toggleSave(b.id)}
+                    onClick={() => toggleSave(b)}
                     className="rounded-xl bg-[#f1f1ef] px-4 py-3 text-sm text-[#3a3d40]"
                   >
                     저장 해제

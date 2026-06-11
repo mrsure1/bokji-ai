@@ -1,5 +1,5 @@
 import { chatResponseSchema, getGeminiJsonModel, type ChatLlmResult } from "@/lib/ai/gemini";
-import { getBenefitById, listBenefits } from "@/lib/benefits/service";
+import { listBenefitsByIds } from "@/lib/benefits/service";
 import { searchCatalog } from "@/lib/benefits/search";
 import { requireGemini } from "@/lib/env";
 import type { Benefit } from "@/lib/types";
@@ -92,15 +92,12 @@ ${userMessage}`;
 
   // 그라운딩: 추천 카드는 (1) matched 상태이고 (2) 이번 후보(catalog)에 있던 id만 허용.
   // → LLM이 후보 밖 id를 골라도, 매칭이 없을 때 추천하더라도 카드로 나가지 않는다.
-  const benefits: Benefit[] = [];
+  let benefits: Benefit[] = [];
   if (matched) {
-    const allBenefits = await listBenefits(100);
-    const byId = new Map(allBenefits.map((b) => [b.id, b]));
-    for (const id of parsed.benefitIds ?? []) {
-      if (!catalogIds.has(id)) continue; // 후보에 없던 id 차단
-      const b = byId.get(id) ?? (await getBenefitById(id));
-      if (b) benefits.push(b);
-    }
+    const allowedIds = (parsed.benefitIds ?? []).filter((id) => catalogIds.has(id));
+    const fetched = await listBenefitsByIds(allowedIds);
+    const byId = new Map(fetched.map((b) => [b.id, b]));
+    benefits = allowedIds.map((id) => byId.get(id)).filter((b): b is Benefit => Boolean(b));
   }
 
   return {

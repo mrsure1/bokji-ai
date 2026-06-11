@@ -46,9 +46,11 @@ export default function ChatPage() {
           message: text,
           history,
           profile: {
-            name: profile.name,
-            region: profile.region,
-            jobStatus: profile.jobStatus,
+            name: profile.name ?? undefined,
+            region: profile.regionSido
+              ? `${profile.regionSido}${profile.regionSigungu ? ` ${profile.regionSigungu}` : ""}`
+              : undefined,
+            jobStatus: profile.currentStatus ?? undefined,
             interests: profile.interests,
           },
         }),
@@ -114,8 +116,8 @@ export default function ChatPage() {
               bokji-ai
             </p>
             <p className="text-[13.5px] leading-snug">
-              {profile.name}님, 안녕하세요! 걱정되는 상황을 일상어로 말씀해 주시면 맞는 복지 혜택을
-              찾아드릴게요.
+              {profile.name ? `${profile.name}님, 안녕하세요!` : "안녕하세요!"} 걱정되는 상황을
+              일상어로 말씀해 주시면 맞는 복지 혜택을 찾아드릴게요.
             </p>
           </div>
         )}
@@ -166,7 +168,7 @@ export default function ChatPage() {
                       상세보기
                     </Link>
                     <button
-                      onClick={() => toggleSave(b.id)}
+                      onClick={() => toggleSave(b)}
                       className="flex-1 rounded-lg bg-[#f1f1ef] py-2 text-center text-xs text-[#3a3d40]"
                     >
                       {isSaved(b.id) ? "저장됨" : "저장"}
@@ -193,8 +195,16 @@ export default function ChatPage() {
         ))}
 
         {loading && (
-          <div className="max-w-[84%] self-start rounded-2xl border border-line bg-card px-3.5 py-3 text-[13px] text-muted">
-            AI가 답변을 작성하고 있어요…
+          <div
+            className="max-w-[84%] self-start rounded-2xl rounded-bl-sm border border-line bg-card px-3.5 py-3 shadow-[0_2px_8px_rgba(0,0,0,0.03)]"
+            role="status"
+            aria-label="AI가 답변을 작성하고 있어요"
+          >
+            <p className="mb-2 text-[13px] leading-snug text-muted">AI가 답변을 작성하고 있어요…</p>
+            {/* 진행률 바(6px)의 절반 두께(3px)인 가느다란 회색 인디터미닛 라인 */}
+            <div className="relative h-[3px] w-full overflow-hidden rounded-full bg-[#ececeb]">
+              <span className="absolute inset-y-0 left-0 w-2/5 rounded-full bg-gradient-to-r from-transparent via-[#9aa0a6] to-transparent animate-bar-indeterminate" />
+            </div>
           </div>
         )}
 

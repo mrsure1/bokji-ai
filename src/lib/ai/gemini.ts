@@ -15,7 +15,8 @@ export function getGeminiModel() {
     model: serverEnv.geminiModel,
     generationConfig: {
       temperature: 0.4,
-      maxOutputTokens: 2048,
+      // gemini-2.5 계열은 thinking 토큰이 출력 한도에 포함되므로 넉넉히 잡는다
+      maxOutputTokens: 8192,
     },
   });
 }
@@ -25,7 +26,7 @@ export function getGeminiJsonModel(schema: Schema) {
     model: serverEnv.geminiModel,
     generationConfig: {
       temperature: 0.3,
-      maxOutputTokens: 2048,
+      maxOutputTokens: 8192,
       responseMimeType: "application/json",
       responseSchema: schema,
     },

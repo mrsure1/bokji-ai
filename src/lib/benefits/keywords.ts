@@ -68,6 +68,168 @@ const SIDO_CANON: [string, string, string][] = [
   ["제주", "제주", "제주"],
 ];
 
+/** 연령 관련 생애주기 토큰 (life_stages 중 연령으로 판별 가능한 것) */
+export const AGE_LIFE_STAGES = new Set([
+  "영유아",
+  "아동",
+  "청소년",
+  "청년",
+  "중장년",
+  "노년",
+]);
+
+/** 출생년도 → 생애주기 토큰. birthYear 없으면 null(연령 미상) */
+export function birthYearToLifeStage(birthYear: number | null | undefined): string | null {
+  if (!birthYear) return null;
+  const age = new Date().getFullYear() - birthYear + 1; // 한국식 나이(근사)
+  if (age <= 7) return "영유아";
+  if (age <= 13) return "아동";
+  if (age <= 19) return "청소년";
+  if (age <= 39) return "청년";
+  if (age <= 64) return "중장년";
+  return "노년";
+}
+
+/**
+ * 혜택이 어느 시/도 전용인지 추정.
+ * gov24 데이터는 region_sido가 비어 있고 provider/제목에 지역이 들어 있다.
+ * @returns 표준 시도 키(예: "경기") 또는 null(=중앙부처/전국 혜택으로 간주)
+ */
+export function benefitSido(input: {
+  region_sido?: string | null;
+  provider?: string | null;
+  region_scope?: string | null;
+  title?: string | null;
+}): string | null {
+  return (
+    canonSido(input.region_sido) ??
+    canonSido(input.provider) ??
+    canonSido(input.region_scope) ??
+    canonSido(input.title)
+  );
+}
+
+// 미성년 자녀가 있어야 받을 수 있는 혜택(입학·교복·보육 등)을 식별하는 마커.
+// gov24 데이터는 이런 혜택의 life_stages를 비워 두는 경우가 많아 텍스트로 보강한다.
+const CHILD_DEPENDENT_RE =
+  /자녀|초등|중학교|중학생|고등학교|고등학생|초·중·고|초중고|중·고|신입생|입학준비금|입학축하금|입학지원금|교복|어린이집|유치원|보육|누리과정|영유아|아동|청소년|양육|육아|학부모|돌봄교실|다자녀|장학/;
+const CHILD_LIFE_STAGES = new Set(["영유아", "아동", "청소년"]);
+
+/**
+ * 혜택이 "미성년 자녀를 둔 가구"를 전제로 하는지.
+ * @returns true면 자녀 없는 가구에는 보여주지 않는 것이 적절하다.
+ */
+export function isChildDependentBenefit(input: {
+  title?: string | null;
+  target_summary?: string | null;
+  benefit_summary?: string | null;
+  life_stages?: string[] | null;
+}): boolean {
+  if ((input.life_stages ?? []).some((s) => CHILD_LIFE_STAGES.has(s))) return true;
+  const hay = `${input.title ?? ""} ${input.target_summary ?? ""} ${input.benefit_summary ?? ""}`;
+  return CHILD_DEPENDENT_RE.test(hay);
+}
+
+/** 가구 상황 → benefits.household_types facet 어휘 매핑 (해당되는 것만) */
+const SITUATION_TO_FACET: Record<string, string> = {
+  "한부모 가정": "한부모·조손",
+  "조손 가정": "한부모·조손",
+  "다자녀 가정": "다자녀",
+  "장애가 있는 가족": "장애인",
+};
+
+export function situationsToBenefitHouseholds(situations: string[] | null | undefined): string[] {
+  const out = new Set<string>();
+  for (const s of situations ?? []) {
+    const facet = SITUATION_TO_FACET[s];
+    if (facet) out.add(facet);
+  }
+  return [...out];
+}
+
+/** 미성년 자녀가 있음을 함의하는 가구 상황 */
+const CHILD_SITUATIONS = ["미성년 자녀 양육", "한부모 가정", "조손 가정", "다자녀 가정"];
+
+/**
+ * 가구 상황상 "부양 중인 미성년 자녀가 없음"이 확실한지.
+ * @returns true(자녀 없음) / false(자녀 있음) / null(미입력·판단 보류)
+ */
+export function householdHasNoChildren(situations: string[] | null | undefined): boolean | null {
+  if (!situations || situations.length === 0) return null;
+  return !situations.some((s) => CHILD_SITUATIONS.includes(s));
+}
+
+/**
+ * 가구 구성원 전체의 생애주기 토큰.
+ * 본인 나이뿐 아니라 부양 대상(미성년 자녀·어르신 부모)의 생애주기까지 포함시켜,
+ * 예컨대 56세가 부모를 부양하면 '노년' 대상 혜택(장기요양 등)도 적합하게 만든다.
+ */
+export function householdLifeStages(
+  birthYear: number | null | undefined,
+  situations: string[] | null | undefined,
+): string[] {
+  const set = new Set<string>();
+  const self = birthYearToLifeStage(birthYear);
+  if (self) set.add(self);
+  const sits = situations ?? [];
+  if (sits.some((s) => ["미성년 자녀 양육", "한부모 가정", "다자녀 가정"].includes(s))) {
+    set.add("영유아");
+    set.add("아동");
+    set.add("청소년");
+  }
+  if (sits.includes("조손 가정")) {
+    set.add("아동");
+    set.add("청소년");
+    set.add("노년");
+  }
+  if (sits.includes("부모님(어르신) 부양")) set.add("노년");
+  return [...set];
+}
+
+// 제목/대상 텍스트로 연령대를 추론하는 보조 사전 (life_stages가 비어 있는 gov24 데이터 보강).
+const AGE_TEXT_MARKERS: [RegExp, string][] = [
+  [/영유아|어린이집|유치원|보육/, "영유아"],
+  [/초등|아동/, "아동"],
+  [/청소년|중학생|고등학생|중·고생|중고생/, "청소년"],
+  [/청년|대학생|사회초년/, "청년"],
+  [/중장년|중년|장년/, "중장년"],
+  [/노인|어르신|고령|시니어|경로/, "노년"],
+];
+
+/** 혜택이 겨냥하는 연령대 토큰. life_stages 우선, 비어 있으면 텍스트로 추론. */
+export function inferAgeStages(input: {
+  life_stages?: string[] | null;
+  title?: string | null;
+  target_summary?: string | null;
+  benefit_summary?: string | null;
+}): string[] {
+  const fromLife = (input.life_stages ?? []).filter((s) => AGE_LIFE_STAGES.has(s));
+  if (fromLife.length) return fromLife;
+  const hay = `${input.title ?? ""} ${input.target_summary ?? ""} ${input.benefit_summary ?? ""}`;
+  const set = new Set<string>();
+  for (const [re, stage] of AGE_TEXT_MARKERS) if (re.test(hay)) set.add(stage);
+  return [...set];
+}
+
+/**
+ * 혜택이 가구 구성원 중 누군가의 연령대에 맞는지. 연령 단서가 없으면 전연령으로 본다.
+ * @param householdStages 가구 전체 생애주기(본인 + 부양 자녀/부모). 비어 있으면 연령 미상.
+ */
+export function benefitMatchesAge(
+  input: {
+    life_stages?: string[] | null;
+    title?: string | null;
+    target_summary?: string | null;
+    benefit_summary?: string | null;
+  },
+  householdStages: string[],
+): { applicable: boolean; ageScoped: boolean } {
+  const ageTokens = inferAgeStages(input);
+  if (ageTokens.length === 0) return { applicable: true, ageScoped: false }; // 전연령
+  if (householdStages.length === 0) return { applicable: true, ageScoped: true }; // 연령 미상
+  return { applicable: ageTokens.some((t) => householdStages.includes(t)), ageScoped: true };
+}
+
 export interface ExtractedSignals {
   themes: string[];
   lifeStages: string[];

@@ -265,6 +265,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          alarm_app: boolean | null
           alarm_email: boolean | null
           alarm_night: boolean | null
           alarm_sms: boolean | null
@@ -273,6 +274,7 @@ export type Database = {
           current_status: string | null
           employment_detail: string | null
           household_type: string | null
+          household_situations: string[] | null
           housing_type: string | null
           id: string
           income_band: string | null
@@ -284,6 +286,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          alarm_app?: boolean | null
           alarm_email?: boolean | null
           alarm_night?: boolean | null
           alarm_sms?: boolean | null
@@ -292,6 +295,7 @@ export type Database = {
           current_status?: string | null
           employment_detail?: string | null
           household_type?: string | null
+          household_situations?: string[] | null
           housing_type?: string | null
           id: string
           income_band?: string | null
@@ -303,6 +307,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          alarm_app?: boolean | null
           alarm_email?: boolean | null
           alarm_night?: boolean | null
           alarm_sms?: boolean | null
@@ -311,6 +316,7 @@ export type Database = {
           current_status?: string | null
           employment_detail?: string | null
           household_type?: string | null
+          household_situations?: string[] | null
           housing_type?: string | null
           id?: string
           income_band?: string | null
