@@ -23,17 +23,25 @@ export function BottomNav() {
           <Link
             key={t.href}
             href={t.href}
-            className="flex w-16 flex-col items-center gap-1 text-[10px]"
+            className="group flex w-16 select-none flex-col items-center gap-1 text-[10px]"
             aria-current={active ? "page" : undefined}
           >
             <span
-              className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${
-                active ? "bg-brand-light text-brand" : "text-[#9aa0a6]"
+              className={`flex h-7 w-7 items-center justify-center rounded-lg transition-all duration-200 ease-out group-hover:scale-110 group-hover:-translate-y-0.5 group-active:scale-90 group-active:translate-y-0 group-active:duration-100 ${
+                active
+                  ? "bg-brand-light text-brand"
+                  : "text-[#9aa0a6] group-hover:bg-brand-light group-hover:text-brand"
               }`}
             >
               <NavIcon id={t.icon} className="h-[19px] w-[19px]" />
             </span>
-            <span className={active ? "font-semibold text-brand" : "text-muted"}>{t.label}</span>
+            <span
+              className={`transition-colors duration-200 ${
+                active ? "font-semibold text-brand" : "text-muted group-hover:text-brand-dark"
+              }`}
+            >
+              {t.label}
+            </span>
           </Link>
         );
       })}
