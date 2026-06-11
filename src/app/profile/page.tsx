@@ -227,6 +227,13 @@ export default function ProfilePage() {
         />
       </div>
 
+      <button
+        onClick={() => router.push("/")}
+        className="mb-6 w-full rounded-2xl bg-brand py-4 text-center font-bold text-white shadow-[0_10px_20px_-12px_rgba(24,160,88,0.6)] active:scale-[0.99]"
+      >
+        저장하고 홈으로 가기
+      </button>
+
       <p className="mb-2.5 px-1 text-xs font-semibold text-muted">알림 설정</p>
       <div className="mb-5 overflow-hidden rounded-2xl border border-line bg-card">
         {alarmFields.map((f, i) => (
@@ -264,13 +271,6 @@ export default function ProfilePage() {
         입력한 정보는 맞춤 추천과 알림에만 사용돼요. 모든 항목은 선택 입력이며 언제든 지울 수
         있어요. 변경 사항은 자동으로 저장돼요.
       </p>
-
-      <button
-        onClick={() => router.push("/")}
-        className="mt-5 w-full rounded-2xl bg-brand py-4 text-center font-bold text-white shadow-[0_10px_20px_-12px_rgba(24,160,88,0.6)] active:scale-[0.99]"
-      >
-        저장하고 홈으로 가기
-      </button>
 
       {editing && (
         <EditSheet
