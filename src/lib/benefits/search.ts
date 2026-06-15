@@ -6,6 +6,7 @@
 //  - matched=false(무신호/매칭 0건)면 빈 후보를 반환해, 챗봇이 "없음"을 정직하게 말하도록 한다.
 //    (예전처럼 최근 항목으로 억지 폴백 추천하지 않는다.)
 
+import { embedQuery } from "@/lib/ai/embedding";
 import { canonSido, extractSignals, sidoDbPrefix } from "@/lib/benefits/keywords";
 import { createServiceClient } from "@/lib/supabase/server";
 
@@ -86,19 +87,17 @@ function overlapCount(a: string[] | null, b: string[]): number {
  *
  * @returns matched=false면 추천하면 안 되는 상태(무신호/매칭 0건).
  */
-export async function searchCatalog(
-  message: string,
-  profile?: SearchProfile,
-  limit = 40,
-): Promise<SearchResult> {
-  // 프로필 관심사·고용상태도 신호로 합침
-  const extraText = [profile?.jobStatus, ...(profile?.interests ?? [])].filter(Boolean).join(" ");
-  const sig = extractSignals(`${message} ${extraText}`);
+// 벡터 의미검색 임계값. 키워드 신호가 없을 때 "추천해도 되는지" 판단 + 노이즈 컷.
+const VEC_STRONG = 0.68; // 이 이상이면 키워드 신호 없어도 의미적으로 충분히 관련
+const VEC_WEAK = 0.6; // RRF에 포함할 최소 유사도
+const RRF_K = 60;
 
-  const userCanon = canonSido(profile?.region);
-  const dbPrefix = sidoDbPrefix(userCanon);
-
-  // 신호 필터 조립
+async function keywordRanked(
+  supabase: ReturnType<typeof createServiceClient>,
+  sig: ReturnType<typeof extractSignals>,
+  userCanon: string | null,
+  dbPrefix: string | null,
+): Promise<BenefitSearchRow[]> {
   const orParts: string[] = [];
   const themesOv = ovClause("themes", sig.themes);
   const houseOv = ovClause("household_types", sig.households);
@@ -109,48 +108,93 @@ export async function searchCatalog(
   for (const kw of sig.keywords.slice(0, 6)) {
     const safe = kw.replace(/[%,()*]/g, "");
     if (!safe) continue;
-    orParts.push(`title.ilike.*${safe}*`);
-    orParts.push(`plain_summary.ilike.*${safe}*`);
-    orParts.push(`benefit_summary.ilike.*${safe}*`);
+    orParts.push(`title.ilike.*${safe}*`, `plain_summary.ilike.*${safe}*`, `benefit_summary.ilike.*${safe}*`);
   }
+  if (orParts.length === 0) return [];
 
-  const supabase = createServiceClient();
-
-  // 신호가 전혀 없으면: 추천 금지 상태(matched=false). 후보를 비워 챗봇이 되묻게 한다.
-  if (orParts.length === 0) {
-    return { items: [], matched: false };
-  }
-
-  // 신호 기반 검색
   let query = supabase.from("benefits").select(SELECT);
   if (dbPrefix) query = query.or(`region_sido.is.null,region_sido.ilike.${dbPrefix}%`);
   query = query.or(orParts.join(","));
-
-  const { data, error } = await query.limit(300);
-  if (error) {
-    // 검색 자체 실패 → 안전하게 빈 결과(억지 추천 금지)
-    return { items: [], matched: false };
-  }
-
+  const { data } = await query.limit(300);
   const rows = (data as BenefitSearchRow[]) ?? [];
-  if (!rows.length) {
-    // 신호는 있었으나 매칭 0건 = 진짜 "맞는 혜택 없음"
-    return { items: [], matched: false };
+
+  return rows
+    .map((row) => {
+      let score = 0;
+      if (row.region_sido == null) score += 2;
+      else if (userCanon && canonSido(row.region_sido) === userCanon) score += 6;
+      score += overlapCount(row.household_types, sig.households) * 4;
+      score += overlapCount(row.themes, sig.themes) * 3;
+      score += overlapCount(row.life_stages, sig.lifeStages) * 2;
+      const hay = `${row.title} ${row.plain_summary ?? ""} ${row.benefit_summary ?? ""}`;
+      for (const kw of sig.keywords) if (hay.includes(kw)) score += 2;
+      if (row.deadline) score += 1;
+      return { row, score };
+    })
+    .sort((a, b) => b.score - a.score)
+    .map((s) => s.row);
+}
+
+/**
+ * 하이브리드 검색: 키워드/facet 검색 + 벡터(pgvector) 의미검색을 RRF로 융합.
+ * - 임베딩 미적재/오류 시 키워드 검색만으로 동작(폴백).
+ * - 키워드 신호도 없고 의미적으로도 약하면 matched=false (챗봇이 되묻게).
+ */
+export async function searchCatalog(
+  message: string,
+  profile?: SearchProfile,
+  limit = 40,
+): Promise<SearchResult> {
+  const extraText = [profile?.jobStatus, ...(profile?.interests ?? [])].filter(Boolean).join(" ");
+  const sig = extractSignals(`${message} ${extraText}`);
+  const userCanon = canonSido(profile?.region);
+  const dbPrefix = sidoDbPrefix(userCanon);
+  const supabase = createServiceClient();
+
+  // 1) 키워드/facet 후보
+  const kwRows = await keywordRanked(supabase, sig, userCanon, dbPrefix);
+  const kwIds = kwRows.map((r) => r.id);
+
+  // 2) 벡터 의미검색 (임베딩 있으면). 실패해도 키워드로 폴백.
+  let vecHits: { benefit_id: string; similarity: number }[] = [];
+  try {
+    const qvec = await embedQuery(`${message} ${extraText}`.slice(0, 2000));
+    const { data } = await supabase.rpc("match_benefits", {
+      query_embedding: qvec,
+      match_count: 50,
+    });
+    vecHits = data ?? [];
+  } catch {
+    /* 임베딩/RPC 실패 → 키워드 결과만 사용 */
+  }
+  const bestSim = vecHits[0]?.similarity ?? 0;
+
+  // 3) 추천 가능 여부
+  const keywordMatched = kwIds.length > 0;
+  const vectorMatched = bestSim >= VEC_STRONG;
+  if (!keywordMatched && !vectorMatched) return { items: [], matched: false };
+
+  // 4) RRF 융합 (키워드 순위 + 벡터 순위)
+  const vecIds = vecHits.filter((h) => h.similarity >= VEC_WEAK).map((h) => h.benefit_id);
+  const rrf = new Map<string, number>();
+  kwIds.forEach((id, i) => rrf.set(id, (rrf.get(id) ?? 0) + 1 / (RRF_K + i + 1)));
+  vecIds.forEach((id, i) => rrf.set(id, (rrf.get(id) ?? 0) + 1 / (RRF_K + i + 1)));
+
+  const topIds = [...rrf.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit).map(([id]) => id);
+  if (topIds.length === 0) return { items: [], matched: false };
+
+  // 5) 후보 행 확보(키워드행 + 벡터 전용 id 보충) → topIds 순서대로 CatalogItem
+  const rowMap = new Map<string, BenefitSearchRow>(kwRows.map((r) => [r.id, r]));
+  const missing = topIds.filter((id) => !rowMap.has(id));
+  if (missing.length) {
+    const { data } = await supabase.from("benefits").select(SELECT).in("id", missing);
+    (data as BenefitSearchRow[] | null)?.forEach((r) => rowMap.set(r.id, r));
   }
 
-  const scored = rows.map((row) => {
-    let score = 0;
-    if (row.region_sido == null) score += 2;
-    else if (userCanon && canonSido(row.region_sido) === userCanon) score += 6;
-    score += overlapCount(row.household_types, sig.households) * 4;
-    score += overlapCount(row.themes, sig.themes) * 3;
-    score += overlapCount(row.life_stages, sig.lifeStages) * 2;
-    const hay = `${row.title} ${row.plain_summary ?? ""} ${row.benefit_summary ?? ""}`;
-    for (const kw of sig.keywords) if (hay.includes(kw)) score += 2;
-    if (row.deadline) score += 1;
-    return { row, score };
-  });
+  const items = topIds
+    .map((id) => rowMap.get(id))
+    .filter((r): r is BenefitSearchRow => Boolean(r))
+    .map((r) => toCatalogItem(r));
 
-  scored.sort((a, b) => b.score - a.score);
-  return { items: scored.slice(0, limit).map((s) => toCatalogItem(s.row)), matched: true };
+  return { items, matched: true };
 }

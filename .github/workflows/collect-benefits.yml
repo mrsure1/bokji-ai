@@ -34,3 +34,12 @@ jobs:
           GOV24_SERVICE_KEY: ${{ secrets.GOV24_SERVICE_KEY }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      # 신규/미임베딩 혜택만 벡터 임베딩 생성(증분) → pgvector 의미검색 최신 유지
+      - name: 신규 혜택 임베딩 → benefit_embeddings
+        run: npm run embed-benefits
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_EMBEDDING_MODEL: ${{ secrets.GEMINI_EMBEDDING_MODEL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

@@ -366,7 +366,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      match_benefits: {
+        Args: { query_embedding: number[]; match_count?: number }
+        Returns: { benefit_id: string; similarity: number }[]
+      }
     }
     Enums: {
       [_ in never]: never

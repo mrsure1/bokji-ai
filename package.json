@@ -12,7 +12,8 @@
     "test-gov24": "node scripts/test-gov24-api.mjs",
     "test-ssis-commoncode": "node scripts/test-ssis-commoncode-api.mjs",
     "collect-benefits": "node scripts/collect-benefits.mjs",
-    "collect-benefits:direct": "node scripts/collect-benefits-standalone.mjs"
+    "collect-benefits:direct": "node scripts/collect-benefits-standalone.mjs",
+    "embed-benefits": "node scripts/embed-benefits.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
