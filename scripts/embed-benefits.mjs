@@ -59,6 +59,24 @@ function buildText(b) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// HNSW 인덱스 갱신 때문에 대량 upsert는 statement timeout이 날 수 있어, 작게 쪼개고 재시도한다.
+async function upsertChunked(rows) {
+  let failed = 0;
+  for (let i = 0; i < rows.length; i += 25) {
+    const part = rows.slice(i, i + 25);
+    let ok = false;
+    for (let attempt = 0; attempt < 3 && !ok; attempt++) {
+      const { error } = await sb
+        .from("benefit_embeddings")
+        .upsert(part, { onConflict: "benefit_id,content_type" });
+      if (!error) ok = true;
+      else await sleep(1500);
+    }
+    if (!ok) failed += part.length;
+  }
+  return failed;
+}
+
 async function embedBatch(texts) {
   const res = await model.batchEmbedContents({
     requests: texts.map((t) => ({
@@ -114,11 +132,8 @@ async function main() {
         content_type: "catalog",
         embedding: `[${vectors[idx].join(",")}]`,
       }));
-      const { error: upErr } = await sb
-        .from("benefit_embeddings")
-        .upsert(payload, { onConflict: "benefit_id,content_type" });
-      if (upErr) throw new Error(`upsert: ${upErr.message}`);
-      totalEmbedded += chunk.length;
+      const failed = await upsertChunked(payload);
+      totalEmbedded += chunk.length - failed;
       process.stdout.write(
         `\r적재 ${totalEmbedded}건 (건너뜀 ${totalSkipped}) · ${Math.round((Date.now() - t0) / 1000)}s`,
       );

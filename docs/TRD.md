@@ -34,10 +34,10 @@
 
 * **런타임:** Next.js Route Handler
 * **DB:** Supabase 관리형 Postgres. 앱은 `@supabase/supabase-js`, 수집/마이그레이션은 `pg` 직접 연결.
-* **벡터 검색:** pgvector — 확장을 활성화하고 `benefit_embeddings` 테이블에 임베딩을 저장한다.
+* **벡터 검색:** pgvector — `benefit_embeddings` 테이블에 `vector(1536)` 임베딩을 저장하고 HNSW(코사인) 인덱스로 검색한다. `match_benefits` RPC로 의미 유사도 상위 후보를 조회한다.
 * **인증:** Supabase Auth — `@supabase/ssr` 쿠키 세션을 사용한다.
 * **파일/로그 저장:** 초기에는 DB 중심으로 관리하고, 추후 객체 스토리지 연동
-* **작업 스케줄러:** Vercel Cron(`POST /api/cron/collect`, `CRON_SECRET` Bearer 인증)
+* **작업 스케줄러:** GitHub Actions — 매일 새벽(02:30 KST) 복지 데이터 수집 + 신규분 임베딩을 자동 실행한다(무료 러너, 실행시간 제한 없음). 앱 내부에는 `POST /api/cron/collect` 엔드포인트도 둔다.
 
 ### 2.3. AI
 
@@ -50,7 +50,7 @@
     * 복지 공고 원문 및 요약문 벡터화
     * 사용자 질문과 의미적으로 가까운 복지 공고 검색
 * **중요 원칙:** AI는 수급 가능 여부를 확정하지 않고, 후보 혜택을 설명하고 추가 확인이 필요한 조건을 안내한다.
-* **기술 선택:** LLM/Embedding 모두 **Google Gemini**(`@google/generative-ai`)를 사용한다. 상담 모델은 `GEMINI_MODEL`(기본 `gemini-3.1-flash`), 임베딩은 `text-embedding-004`를 사용하며, 상담 응답은 JSON 스키마 강제 출력으로 구조화한다.
+* **기술 선택:** LLM/Embedding 모두 **Google Gemini**(`@google/generative-ai`)를 사용한다. 상담 모델은 `GEMINI_MODEL`(기본 `gemini-2.5-flash`), 임베딩은 `gemini-embedding-001`(1536차원)을 사용하며, 상담 응답은 JSON 스키마 강제 출력으로 구조화한다.
 
 ### 2.4. 알림
 
@@ -185,7 +185,7 @@ Next.js PWA <-> API 서버 <-> AI 상담/요약 모듈
 6. AI가 후보 혜택을 쉬운 말로 설명한다.
 7. 확정 판단이 필요한 조건은 추가 질문으로 사용자에게 묻는다.
 
-> **구현 전략:** 위 흐름은 **하드필터 → 하이브리드 검색(전문검색 + 벡터, RRF) → LLM 판단** 구조로 구축한다. §4.3의 facet 컬럼이 3단계 구조화 필터의 토대가 된다. 한국어 전문검색은 Postgres 기본 FTS만으로는 정확도가 부족하므로 **pgroonga/pg_bigm 확장 도입을 검토**한다.
+> **구현 전략(적용 완료):** 위 흐름은 **키워드/facet 검색 + 벡터(pgvector) 의미검색을 RRF로 융합 → LLM 판단** 구조로 구현했다. §4.3의 facet 컬럼이 키워드/구조화 필터의 토대가 되고, `gemini-embedding-001` 임베딩(1536차원)을 코사인 HNSW로 검색한다. 두 결과를 RRF로 합치되 정확 일치인 키워드에 더 높은 가중치를 둬, 정확성(키워드)과 의미 근사(벡터)를 모두 살린다.
 
 ### 6.2. 추천 점수 기준
 

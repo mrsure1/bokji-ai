@@ -87,10 +87,13 @@ function overlapCount(a: string[] | null, b: string[]): number {
  *
  * @returns matched=false면 추천하면 안 되는 상태(무신호/매칭 0건).
  */
-// 벡터 의미검색 임계값. 키워드 신호가 없을 때 "추천해도 되는지" 판단 + 노이즈 컷.
-const VEC_STRONG = 0.68; // 이 이상이면 키워드 신호 없어도 의미적으로 충분히 관련
-const VEC_WEAK = 0.6; // RRF에 포함할 최소 유사도
+// 벡터 의미검색 임계값. 한국어 짧은 질의는 무관해도 ~0.58 기본 유사도가 깔리므로 그 위를 신호로 본다.
+const VEC_STRONG = 0.6; // 키워드 신호가 전혀 없을 때 "추천 가능" 판단 (노이즈 0.58 위)
+const VEC_WEAK = 0.58; // RRF에 포함할 최소 유사도
 const RRF_K = 60;
+// 키워드(정확 일치)를 벡터(의미 근사)보다 무겁게 → 정밀도↑. 벡터는 사전 누락분 보강용.
+const KW_WEIGHT = 1.6;
+const VEC_WEIGHT = 1.0;
 
 async function keywordRanked(
   supabase: ReturnType<typeof createServiceClient>,
@@ -161,7 +164,7 @@ export async function searchCatalog(
     const qvec = await embedQuery(`${message} ${extraText}`.slice(0, 2000));
     const { data } = await supabase.rpc("match_benefits", {
       query_embedding: qvec,
-      match_count: 50,
+      match_count: 40,
     });
     vecHits = data ?? [];
   } catch {
@@ -177,8 +180,8 @@ export async function searchCatalog(
   // 4) RRF 융합 (키워드 순위 + 벡터 순위)
   const vecIds = vecHits.filter((h) => h.similarity >= VEC_WEAK).map((h) => h.benefit_id);
   const rrf = new Map<string, number>();
-  kwIds.forEach((id, i) => rrf.set(id, (rrf.get(id) ?? 0) + 1 / (RRF_K + i + 1)));
-  vecIds.forEach((id, i) => rrf.set(id, (rrf.get(id) ?? 0) + 1 / (RRF_K + i + 1)));
+  kwIds.forEach((id, i) => rrf.set(id, (rrf.get(id) ?? 0) + KW_WEIGHT / (RRF_K + i + 1)));
+  vecIds.forEach((id, i) => rrf.set(id, (rrf.get(id) ?? 0) + VEC_WEIGHT / (RRF_K + i + 1)));
 
   const topIds = [...rrf.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit).map(([id]) => id);
   if (topIds.length === 0) return { items: [], matched: false };
