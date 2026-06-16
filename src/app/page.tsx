@@ -62,6 +62,7 @@ export default function HomePage() {
   });
   const timelineRef = useRef<HTMLDivElement>(null);
   const [showCue, setShowCue] = useState(true);
+  const [cueDismissed, setCueDismissed] = useState(false); // 한 번 누르면 다시 뜨지 않게
   const [revealed, setRevealed] = useState(!!cachedFeed); // 캐시가 있으면 진행률 화면 없이 즉시 노출
 
   // 온보딩: 첫 방문(프로필 미입력)이면 내 정보 입력 화면으로, 입력했으면 홈 그대로.
@@ -360,9 +361,12 @@ export default function HomePage() {
           )}
 
           {/* 스크롤 단서 바 (놓침 방지) */}
-          {showCue && timeline.length > 0 && (
+          {showCue && !cueDismissed && timeline.length > 0 && (
             <button
-              onClick={() => timelineRef.current?.scrollIntoView({ behavior: "smooth" })}
+              onClick={() => {
+                timelineRef.current?.scrollIntoView({ behavior: "smooth" });
+                setCueDismissed(true);
+              }}
               className="fixed bottom-[72px] left-1/2 z-20 flex w-[calc(100%-2rem)] max-w-[448px] -translate-x-1/2 items-center gap-3 rounded-2xl border border-line bg-card px-3.5 py-3 text-left shadow-[0_12px_28px_-10px_rgba(0,0,0,0.22)]"
             >
               <span className="flex items-center gap-1.5 rounded-lg bg-coral-light px-2.5 py-[7px] font-display text-[11px] font-extrabold text-coral">
