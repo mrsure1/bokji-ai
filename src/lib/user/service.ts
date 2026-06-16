@@ -10,6 +10,7 @@ import {
   householdHasNoChildren,
   householdLifeStages,
   isChildDependentBenefit,
+  isEnterpriseTargetedBenefit,
   situationsToBenefitHouseholds,
 } from "@/lib/benefits/keywords";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -229,6 +230,23 @@ function urgencyScore(dday: number | null): number {
   return 5;
 }
 
+// 1위 항목이 마감 임박(14일 이내)이 아니면, 상위 후보 중에서 날짜 기반으로 매일 순환시킨다.
+// 그래서 personalization 신호가 약한 사용자(빈 프로필 등)에게 같은 혜택이 며칠씩 고정 노출되지 않는다.
+// 진짜 임박한 혜택(D-14 이내)이 1위면 순환하지 않고 그대로 둔다(놓치면 안 되므로).
+const HERO_ROTATE_POOL = 4;
+function rotateHero(sorted: ScoredRow[]): ScoredRow[] {
+  if (sorted.length <= 1) return sorted;
+  const first = sorted[0];
+  if (first.dday !== null && first.dday <= 14) return sorted; // 임박 → 고정
+  const pool = Math.min(HERO_ROTATE_POOL, sorted.length);
+  const pick = Math.floor(Date.now() / 86400000) % pool; // 일자별 결정적 순환
+  if (pick === 0) return sorted;
+  const reordered = sorted.slice();
+  const [chosen] = reordered.splice(pick, 1);
+  reordered.unshift(chosen);
+  return reordered;
+}
+
 
 export async function getHomeFeed(
   userId: string | null,
@@ -278,14 +296,18 @@ export async function getHomeFeed(
     return { row, sido, regionMatch, national, ageApplicable, ageScoped, dday, score };
   });
 
-  // 강한 규칙(완화 불가): 사용자 연령과 안 맞는 혜택, 자녀 없는 가구의 자녀 의존 혜택은 절대 노출하지 않는다.
+  // 강한 규칙(완화 불가): 사용자 연령과 안 맞는 혜택, 자녀 없는 가구의 자녀 의존 혜택,
+  // 그리고 개인이 아닌 기업/법인 대상 사업(창업지원 등)은 절대 노출하지 않는다.
   const eligible = evaluated.filter(
-    (e) => e.ageApplicable && !(noChildren && isChildDependentBenefit(e.row)),
+    (e) =>
+      e.ageApplicable &&
+      !(noChildren && isChildDependentBenefit(e.row)) &&
+      !isEnterpriseTargetedBenefit(e.row),
   );
 
   // 적용 가능(내 지역/전국) 혜택이 마감 임박 순으로 위에, 타지역은 부족분만 아래에 채워진다.
   eligible.sort((a, b) => b.score - a.score);
-  const top = eligible.slice(0, HOME_SIZE);
+  const top = rotateHero(eligible).slice(0, HOME_SIZE);
   const summaries = await summariesByBenefitIds(top.map((e) => e.row.id));
 
   // fit 재계산: 지역·연령이 내 조건과 맞을수록 "가능성 높음"

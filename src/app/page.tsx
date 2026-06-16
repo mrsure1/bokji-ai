@@ -34,13 +34,20 @@ function isProfileEmpty(p: UserProfile): boolean {
 // 앱을 새로 열 때(풀 로드) 온보딩 분기를 1회만 수행하기 위한 가드. 새로고침 시 초기화된다.
 let onboardingChecked = false;
 
+// 홈 피드 메모리 캐시 (userId·카테고리별). 탭을 오가는 동안엔 재요청 없이 즉시 표시하고
+// 뒤에서 조용히 최신 데이터로 갱신한다(stale-while-revalidate). 새로고침 시 비워진다.
+const feedCache = new Map<string, HomeFeed>();
+const feedKey = (userId: string | null, category: string) => `${userId ?? "anon"}:${category}`;
+
 const HIDDEN_CATS_KEY = "bokji-ai:hiddenCategories";
 
 export default function HomePage() {
   const router = useRouter();
   const { userId, ready, profile, isSaved, toggleSave, unreadCount } = useApp();
-  const [feed, setFeed] = useState<HomeFeed | null>(null);
-  const [loading, setLoading] = useState(true);
+  // 탭 이동으로 돌아온 경우 캐시된 피드를 즉시 사용 (없으면 첫 로딩 경험 그대로)
+  const cachedFeed = feedCache.get(feedKey(userId, "all")) ?? null;
+  const [feed, setFeed] = useState<HomeFeed | null>(cachedFeed);
+  const [loading, setLoading] = useState(!cachedFeed);
   const [switching, setSwitching] = useState(false);
   const [category, setCategory] = useState("all");
   const [editingCats, setEditingCats] = useState(false);
@@ -55,7 +62,7 @@ export default function HomePage() {
   });
   const timelineRef = useRef<HTMLDivElement>(null);
   const [showCue, setShowCue] = useState(true);
-  const [revealed, setRevealed] = useState(false); // 진행률 100% 후 콘텐츠 노출
+  const [revealed, setRevealed] = useState(!!cachedFeed); // 캐시가 있으면 진행률 화면 없이 즉시 노출
 
   // 온보딩: 첫 방문(프로필 미입력)이면 내 정보 입력 화면으로, 입력했으면 홈 그대로.
   // 앱 풀 로드당 1회만 분기하므로, 이후 홈 탭을 눌러 돌아오는 것은 막지 않는다.
@@ -65,15 +72,17 @@ export default function HomePage() {
     if (isProfileEmpty(profile)) router.replace("/profile");
   }, [ready, profile, router]);
 
-  // 초기 로드 (전체 카테고리)
+  // 초기 로드 (전체 카테고리) — 캐시가 있으면 즉시 보여주고 뒤에서 갱신, 없으면 첫 로딩처럼 동작
   useEffect(() => {
     if (!ready) return;
+    const key = feedKey(userId, "all");
     let cancelled = false;
     (async () => {
       try {
         const res = await fetch(`/api/home?category=all${userId ? `&userId=${userId}` : ""}`);
         if (res.ok) {
           const data = await res.json();
+          feedCache.set(key, data);
           if (!cancelled) setFeed(data);
         }
       } finally {
@@ -85,13 +94,20 @@ export default function HomePage() {
     };
   }, [ready, userId]);
 
-  // 카테고리 피드 로드 (전체 화면 로더 대신 가벼운 전환)
+  // 카테고리 피드 로드 (전체 화면 로더 대신 가벼운 전환). 캐시가 있으면 즉시 표시 + 뒤에서 갱신.
   const loadCategory = async (key: string) => {
     setCategory(key);
-    setSwitching(true);
+    const cacheKey = feedKey(userId, key);
+    const cached = feedCache.get(cacheKey);
+    if (cached) setFeed(cached);
+    setSwitching(!cached); // 캐시가 있으면 흐림 효과 없이 즉시 전환
     try {
       const res = await fetch(`/api/home?category=${key}${userId ? `&userId=${userId}` : ""}`);
-      if (res.ok) setFeed(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        feedCache.set(cacheKey, data);
+        setFeed(data);
+      }
     } finally {
       setSwitching(false);
     }

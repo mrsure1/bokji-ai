@@ -130,6 +130,26 @@ export function isChildDependentBenefit(input: {
   return CHILD_DEPENDENT_RE.test(hay);
 }
 
+// gov24 카탈로그에는 개인 복지가 아니라 기업·법인·창업기업을 신청 주체로 하는
+// 사업(창업지원·R&D 등)이 섞여 들어온다(예: "K-스타트업 그랜드 챌린지"). 개인 복지 앱에는 노출하지 않는다.
+// "중소기업"처럼 개인(근로자) 복지에도 흔히 등장하는 단어는 오탐 우려가 있어 제외하고,
+// 신청 주체가 기업/법인임이 분명한 표현만 사용한다.
+const ENTERPRISE_TARGET_RE =
+  /창업기업|법인\s*설립|법인\s*등록|스타트업|벤처기업|기업부설\s*연구|액셀러레이|투자\s*유치|연구개발\s*과제/;
+
+/**
+ * 혜택의 신청 주체가 개인이 아니라 기업/법인/창업기업인지.
+ * @returns true면 개인 복지가 아니므로 홈 추천에서 제외하는 것이 적절하다.
+ */
+export function isEnterpriseTargetedBenefit(input: {
+  title?: string | null;
+  target_summary?: string | null;
+  benefit_summary?: string | null;
+}): boolean {
+  const hay = `${input.title ?? ""} ${input.target_summary ?? ""} ${input.benefit_summary ?? ""}`;
+  return ENTERPRISE_TARGET_RE.test(hay);
+}
+
 /** 가구 상황 → benefits.household_types facet 어휘 매핑 (해당되는 것만) */
 const SITUATION_TO_FACET: Record<string, string> = {
   "한부모 가정": "한부모·조손",
