@@ -12,6 +12,7 @@ import {
   householdLifeStages,
   isChildDependentBenefit,
   isEnterpriseTargetedBenefit,
+  sidoDbPrefix,
   sigunguMatches,
   SPECIALIZED_THEMES,
   situationsToBenefitHouseholds,
@@ -289,16 +290,32 @@ export async function getHomeFeed(
   const householdFacets = situationsToBenefitHouseholds(profile.householdSituations);
   const today = new Date().toISOString().slice(0, 10);
 
-  // gov24 데이터는 region_sido가 비어 있어 DB 단계 지역 필터가 불가능하다.
-  // 마감 임박 순으로 넉넉히 가져온 뒤 provider 기반으로 JS에서 지역·연령을 판정한다.
-  let query = supabase
+  // 마감일 있는 혜택은 전체의 1%도 안 되므로(대부분 상시 접수), 후보를 두 갈래로 모은다.
+  //  ① 마감 임박: 마감일이 가까운 순 — 놓치면 안 되는 혜택을 위로 올리기 위함
+  //  ② 상시 맞춤: 마감일 없는 혜택 중 내 지역(시도)·관심사에 맞는 것 — 피드 본문을 채운다
+  // gov24 데이터는 region_sido가 비어 있어(지역 단서는 provider 텍스트), DB에서는 느슨하게
+  // 거른 뒤 provider 기반으로 JS에서 시도·시군구를 최종 판정한다.
+  let deadlineQuery = supabase
     .from("benefits")
     .select(FEED_SELECT)
     .not("deadline", "is", null)
     .gte("deadline", today);
-  if (categoryThemes.length) query = query.overlaps("themes", categoryThemes);
-  const { data } = await query.order("deadline", { ascending: true }).limit(400);
-  const rows = (data ?? []) as BenefitRow[];
+  if (categoryThemes.length) deadlineQuery = deadlineQuery.overlaps("themes", categoryThemes);
+
+  let standingQuery = supabase.from("benefits").select(FEED_SELECT).is("deadline", null);
+  const standingThemes = categoryThemes.length ? categoryThemes : profile.interests;
+  if (standingThemes.length) standingQuery = standingQuery.overlaps("themes", standingThemes);
+  // region_sido가 내 시도이거나, 비어 있는(전국/ gov24) 혜택만. 다른 시도 지자체 복지는 DB에서 1차 제외.
+  if (userSido) {
+    const prefix = sidoDbPrefix(userSido);
+    standingQuery = standingQuery.or(`region_sido.is.null,region_sido.ilike.${prefix}%`);
+  }
+
+  const [{ data: deadlineData }, { data: standingData }] = await Promise.all([
+    deadlineQuery.order("deadline", { ascending: true }).limit(400),
+    standingQuery.order("collected_at", { ascending: false }).limit(600),
+  ]);
+  const rows = [...(deadlineData ?? []), ...(standingData ?? [])] as BenefitRow[];
 
   const evaluated: ScoredRow[] = rows.map((row) => {
     const sido = benefitSido(row);
@@ -349,16 +366,19 @@ export async function getHomeFeed(
   });
 
   // 강한 규칙(완화 불가): 사용자 연령과 안 맞는 혜택, 자녀 없는 가구의 자녀 의존 혜택,
-  // 다른 시군구 전용 혜택, 그리고 개인이 아닌 기업/법인 대상 사업(창업지원 등)은 절대 노출하지 않는다.
+  // 그리고 개인이 아닌 기업/법인 대상 사업(창업지원 등)은 절대 노출하지 않는다.
+  // 지역: 내 시도가 정해져 있으면 다른 시도/시군구 전용 혜택은 맞춤 피드에서 제외한다
+  //       (전국 혜택과 내 시도 혜택만 남긴다). 시도 미입력 시에는 지역으로 거르지 않는다.
   const eligible = evaluated.filter(
     (e) =>
       e.ageApplicable &&
       !e.otherCity &&
+      !(userSido != null && !e.regionMatch) &&
       !(noChildren && isChildDependentBenefit(e.row)) &&
       !isEnterpriseTargetedBenefit(e.row),
   );
 
-  // 적용 가능(내 지역/전국) 혜택이 마감 임박 순으로 위에, 타지역은 부족분만 아래에 채워진다.
+  // 남은 혜택(전국 + 내 시도)을 점수순으로. 마감 임박·관심 정조준이 위로 온다.
   eligible.sort((a, b) => b.score - a.score);
   const top = rotateHero(eligible).slice(0, HOME_SIZE);
   const summaries = await summariesByBenefitIds(top.map((e) => e.row.id));
