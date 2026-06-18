@@ -223,6 +223,8 @@ interface ScoredRow {
   regionMatch: boolean; // 사용자 시도와 일치
   national: boolean; // 중앙부처/전국 혜택
   otherCity: boolean; // 같은 도(道)지만 다른 시군구 전용 → 부적합(제외 대상)
+  interestHit: boolean; // 내 관심분야와 테마가 겹침
+  householdHit: boolean; // 내 가구 상황(한부모·다자녀·장애 등)을 정조준
   ageApplicable: boolean; // 사용자 연령에 적용 가능
   ageScoped: boolean; // 연령 제한이 있는 혜택
   dday: number | null; // 마감까지 남은 일수(null=상시)
@@ -241,16 +243,30 @@ function urgencyScore(dday: number | null): number {
   return 5;
 }
 
-// 1위 항목이 마감 임박(14일 이내)이 아니면, 상위 후보 중에서 날짜 기반으로 매일 순환시킨다.
-// 그래서 personalization 신호가 약한 사용자(빈 프로필 등)에게 같은 혜택이 며칠씩 고정 노출되지 않는다.
-// 진짜 임박한 혜택(D-14 이내)이 1위면 순환하지 않고 그대로 둔다(놓치면 안 되므로).
-const HERO_ROTATE_POOL = 4;
+// 히어로(맨 위 큰 카드)는 매일 같은 게 고정되지 않게 상위 후보 사이에서 날짜 기반으로 순환시킨다.
+// 단, 순환 대상은 "히어로 자격"이 있는 항목으로만 제한한다 — 안 급하고 관련도 약한 혜택이
+// 메인에 큰 카드로 뜨지 않게(예: 타지역과 무관한 전국 D-196 항목).
+const HERO_ROTATE_POOL = 5;
+
+/** 히어로로 띄울 자격: 마감 임박(D-30 이내)이거나 내 조건(지역+관심/가구)에 강하게 들어맞는 항목. */
+function heroWorthy(e: ScoredRow): boolean {
+  if (e.dday !== null && e.dday <= 30) return true; // 마감 임박
+  if (e.regionMatch && (e.interestHit || e.householdHit)) return true; // 내 지역 + 관심/가구 정조준
+  return false;
+}
+
 function rotateHero(sorted: ScoredRow[]): ScoredRow[] {
   if (sorted.length <= 1) return sorted;
   const first = sorted[0];
-  if (first.dday !== null && first.dday <= 14) return sorted; // 임박 → 고정
-  const pool = Math.min(HERO_ROTATE_POOL, sorted.length);
-  const pick = Math.floor(Date.now() / 86400000) % pool; // 일자별 결정적 순환
+  if (first.dday !== null && first.dday <= 14) return sorted; // 임박 1위 → 고정(놓치면 안 됨)
+
+  // 상위 후보 중 히어로 자격이 있는 인덱스만 순환 풀에 넣는다.
+  const poolSize = Math.min(HERO_ROTATE_POOL, sorted.length);
+  const worthy: number[] = [];
+  for (let i = 0; i < poolSize; i++) if (heroWorthy(sorted[i])) worthy.push(i);
+  if (worthy.length <= 1) return sorted; // 순환할 자격 후보가 없거나 하나면 점수 1위 유지
+
+  const pick = worthy[Math.floor(Date.now() / 86400000) % worthy.length]; // 일자별 결정적 순환
   if (pick === 0) return sorted;
   const reordered = sorted.slice();
   const [chosen] = reordered.splice(pick, 1);
@@ -298,25 +314,38 @@ export async function getHomeFeed(
       ? Math.max(0, Math.ceil((new Date(row.deadline).getTime() - Date.now()) / 86400000))
       : null;
 
+    const overlap = themeOverlap(row.themes, profile.interests);
+    const interestHit = overlap > 0;
+    const householdHit =
+      householdFacets.length > 0 &&
+      (row.household_types?.some((h) => householdFacets.includes(h)) ?? false);
+
     // 정렬 핵심: ① 내가 받을 수 있는 지역(내 시도·전국)을 최우선 티어로 올리고
     //          ② 같은 티어 안에서는 마감이 임박한 순서를 지배적으로 적용한다.
     let score = regionMatch ? 1000 : 0; // 지역 티어 (타지역은 맨 아래로)
     score += urgencyScore(dday); // 마감 임박 우선 (티어 내 지배적)
     if (userSido && sido === userSido) score += 6; // 전국보다 내 시도 약간 우선
     if (userSigungu && row.provider?.includes(userSigungu)) score += 8; // 내 시군구 가점
-    score += themeOverlap(row.themes, profile.interests) * 4; // 관심분야
-    if (householdFacets.length && row.household_types?.some((h) => householdFacets.includes(h))) {
-      score += 5; // 내 가구 상황(한부모·다자녀·장애 등) 정조준
-    }
+    score += overlap * 4; // 관심분야
+    if (householdHit) score += 5; // 내 가구 상황(한부모·다자녀·장애 등) 정조준
     if (householdStages.length && ageScoped && ageApplicable) score += 3; // 가구 연령대 정조준
     // 관심사와 안 겹치는 특정 직군·산업 전용 테마(농림축산어업 등)는 맨 아래로 강등.
-    if (
-      (row.themes ?? []).some((t) => SPECIALIZED_THEMES.has(t)) &&
-      themeOverlap(row.themes, profile.interests) === 0
-    ) {
+    if ((row.themes ?? []).some((t) => SPECIALIZED_THEMES.has(t)) && overlap === 0) {
       score -= 2000;
     }
-    return { row, sido, regionMatch, national, otherCity, ageApplicable, ageScoped, dday, score };
+    return {
+      row,
+      sido,
+      regionMatch,
+      national,
+      otherCity,
+      interestHit,
+      householdHit,
+      ageApplicable,
+      ageScoped,
+      dday,
+      score,
+    };
   });
 
   // 강한 규칙(완화 불가): 사용자 연령과 안 맞는 혜택, 자녀 없는 가구의 자녀 의존 혜택,
