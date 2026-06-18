@@ -13,6 +13,7 @@ import {
   isEnterpriseTargetedBenefit,
   situationsToBenefitHouseholds,
 } from "@/lib/benefits/keywords";
+import { normalizePhone } from "@/lib/notifications/sms-service";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { Json, Tables, TablesUpdate } from "@/lib/supabase/database.types";
 import type { AppNotification, Benefit, UserProfile } from "@/lib/types";
@@ -62,8 +63,10 @@ function rowToProfile(row: ProfileRow | null): UserProfile {
     housingType: row.housing_type,
     incomeBand: row.income_band,
     interests: row.interests ?? [],
+    phone: row.phone,
     alarms: {
       app: row.alarm_app ?? true,
+      sms: row.alarm_sms ?? false,
     },
   };
 }
@@ -90,8 +93,12 @@ export async function updateProfile(
   if ("housingType" in patch) update.housing_type = patch.housingType;
   if ("incomeBand" in patch) update.income_band = patch.incomeBand;
   if ("interests" in patch) update.interests = patch.interests;
+  if ("phone" in patch) update.phone = normalizePhone(patch.phone);
   if (patch.alarms) {
     update.alarm_app = patch.alarms.app;
+    update.alarm_sms = patch.alarms.sms;
+    // 문자 수신 동의를 켤 때 동의 시각을 기록(법적 근거 보관). 끌 때는 보존.
+    if (patch.alarms.sms) update.sms_consent_at = new Date().toISOString();
   }
 
   const { data, error } = await supabase

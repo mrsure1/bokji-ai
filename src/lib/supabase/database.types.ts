@@ -280,8 +280,10 @@ export type Database = {
           income_band: string | null
           interests: string[] | null
           name: string | null
+          phone: string | null
           region_sido: string | null
           region_sigungu: string | null
+          sms_consent_at: string | null
           special_conditions: string[] | null
           updated_at: string | null
         }
@@ -301,8 +303,10 @@ export type Database = {
           income_band?: string | null
           interests?: string[] | null
           name?: string | null
+          phone?: string | null
           region_sido?: string | null
           region_sigungu?: string | null
+          sms_consent_at?: string | null
           special_conditions?: string[] | null
           updated_at?: string | null
         }
@@ -322,8 +326,10 @@ export type Database = {
           income_band?: string | null
           interests?: string[] | null
           name?: string | null
+          phone?: string | null
           region_sido?: string | null
           region_sigungu?: string | null
+          sms_consent_at?: string | null
           special_conditions?: string[] | null
           updated_at?: string | null
         }

@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 export type EditSheetConfig =
   | { mode: "options"; title: string; options: readonly string[]; value: string | null; allowClear?: boolean }
   | { mode: "multi"; title: string; options: readonly string[]; value: string[]; max?: number }
-  | { mode: "text"; title: string; value: string | null; placeholder?: string; inputMode?: "text" | "numeric" };
+  | { mode: "text"; title: string; value: string | null; placeholder?: string; inputMode?: "text" | "numeric" | "tel" };
 
 interface Props {
   config: EditSheetConfig;

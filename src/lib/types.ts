@@ -58,8 +58,10 @@ export interface UserProfile {
   housingType: string | null;
   incomeBand: string | null;
   interests: string[];
-  /** 앱 알림 수신 여부 (마감 임박·새 혜택을 앱에서 알림) */
-  alarms: { app: boolean };
+  /** 휴대폰 번호 (숫자만, 예: 01012345678). 문자 알림 발송 대상 식별용 */
+  phone: string | null;
+  /** 알림 수신 여부 — app: 앱 내 알림, sms: 문자(마감 임박) 알림(수신 동의) */
+  alarms: { app: boolean; sms: boolean };
 }
 
 export const EMPTY_PROFILE: UserProfile = {
@@ -72,7 +74,8 @@ export const EMPTY_PROFILE: UserProfile = {
   housingType: null,
   incomeBand: null,
   interests: [],
-  alarms: { app: true },
+  phone: null,
+  alarms: { app: true, sms: false },
 };
 
 /** 프로필 선택지 — UI와 매칭 어휘(facets)가 공유 */

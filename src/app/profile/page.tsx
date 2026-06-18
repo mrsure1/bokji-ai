@@ -15,7 +15,21 @@ type FieldKey =
   | "currentStatus"
   | "housingType"
   | "incomeBand"
-  | "interests";
+  | "interests"
+  | "phone";
+
+/** 한국 휴대폰 번호(숫자만 10~11자리) 검사 — 클라이언트 측 1차 검증 */
+const isMobilePhone = (p: string | null | undefined): boolean =>
+  !!p && /^01[016789]\d{7,8}$/.test(p.replace(/\D/g, ""));
+
+/** 표시용 하이픈 포맷 (01012345678 → 010-1234-5678) */
+const fmtPhone = (p: string | null): string | null => {
+  if (!p) return null;
+  const d = p.replace(/\D/g, "");
+  if (d.length === 11) return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+  return p;
+};
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -40,7 +54,19 @@ export default function ProfilePage() {
 
   const alarmFields: { key: keyof UserProfile["alarms"]; label: string; sub?: string }[] = [
     { key: "app", label: "앱 알림 받기", sub: "마감 임박·새 혜택을 앱에서 알려드려요" },
+    { key: "sms", label: "문자(SMS) 알림 받기", sub: "저장한 혜택 마감이 임박하면 문자로 보내드려요" },
   ];
+
+  // 알림 토글 — 문자 알림은 전화번호가 있어야 켤 수 있다.
+  const toggleAlarm = (key: keyof UserProfile["alarms"]) => {
+    const next = !profile.alarms[key];
+    if (key === "sms" && next && !isMobilePhone(profile.phone)) {
+      showToast("문자 알림을 받으려면 전화번호를 먼저 입력해 주세요.");
+      setEditing("phone");
+      return;
+    }
+    save({ alarms: { ...profile.alarms, [key]: next } });
+  };
 
   const regionLabel = profile.regionSido
     ? `${profile.regionSido}${profile.regionSigungu ? ` ${profile.regionSigungu}` : ""}`
@@ -115,6 +141,13 @@ export default function ProfilePage() {
       value: profile.interests,
       max: 5,
     },
+    phone: {
+      mode: "text",
+      title: "전화번호 (문자 알림용)",
+      value: profile.phone,
+      placeholder: "예: 010-1234-5678",
+      inputMode: "tel",
+    },
   };
 
   const handleSheetSave = (key: FieldKey, value: string | null | string[]) => {
@@ -153,6 +186,16 @@ export default function ProfilePage() {
       case "interests":
         save({ interests: value as string[] });
         break;
+      case "phone": {
+        const raw = (value as string | null)?.replace(/\D/g, "") || null;
+        if (raw && !isMobilePhone(raw)) {
+          showToast("휴대폰 번호 형식을 확인해 주세요. (예: 010-1234-5678)");
+          return;
+        }
+        // 번호를 지우면 문자 알림도 함께 끈다(보낼 대상이 없어지므로).
+        save({ phone: raw, ...(raw ? {} : { alarms: { ...profile.alarms, sms: false } }) });
+        break;
+      }
     }
   };
 
@@ -236,10 +279,17 @@ export default function ProfilePage() {
 
       <p className="mb-2.5 px-1 text-xs font-semibold text-muted">알림 설정</p>
       <div className="mb-5 overflow-hidden rounded-2xl border border-line bg-card">
-        {alarmFields.map((f, i) => (
+        <Row
+          icon="📱"
+          label="전화번호"
+          sub="문자 알림에 사용"
+          value={fmtPhone(profile.phone)}
+          onEdit={() => setEditing("phone")}
+        />
+        {alarmFields.map((f) => (
           <div
             key={f.key}
-            className={`flex items-center gap-3 px-4 py-3.5 ${i < alarmFields.length - 1 ? "border-b border-line" : ""}`}
+            className="flex items-center gap-3 border-b border-line px-4 py-3.5 last:border-b-0"
           >
             <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg bg-brand-light text-sm">
               🔔
@@ -252,7 +302,7 @@ export default function ProfilePage() {
               role="switch"
               aria-checked={profile.alarms[f.key]}
               aria-label={f.label}
-              onClick={() => save({ alarms: { ...profile.alarms, [f.key]: !profile.alarms[f.key] } })}
+              onClick={() => toggleAlarm(f.key)}
               className={`relative h-[23px] w-10 shrink-0 rounded-full transition-colors ${
                 profile.alarms[f.key] ? "bg-brand" : "bg-[#d3d6d3]"
               }`}
@@ -269,7 +319,8 @@ export default function ProfilePage() {
 
       <p className="px-1 text-[11px] leading-relaxed text-muted">
         입력한 정보는 맞춤 추천과 알림에만 사용돼요. 모든 항목은 선택 입력이며 언제든 지울 수
-        있어요. 변경 사항은 자동으로 저장돼요.
+        있어요. 변경 사항은 자동으로 저장돼요. 문자 알림을 켜면 저장한 혜택의 마감 임박 안내를
+        입력한 번호로 보내드리며, 언제든 토글을 꺼서 수신을 중단할 수 있어요.
       </p>
 
       {editing && (
