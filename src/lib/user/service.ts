@@ -6,11 +6,14 @@ import { dbRowToBenefit } from "@/lib/benefits/map-db";
 import {
   benefitMatchesAge,
   benefitSido,
+  benefitSigungu,
   canonSido,
   householdHasNoChildren,
   householdLifeStages,
   isChildDependentBenefit,
   isEnterpriseTargetedBenefit,
+  sigunguMatches,
+  SPECIALIZED_THEMES,
   situationsToBenefitHouseholds,
 } from "@/lib/benefits/keywords";
 import { normalizePhone } from "@/lib/notifications/sms-service";
@@ -219,6 +222,7 @@ interface ScoredRow {
   sido: string | null; // 혜택 시도(null=전국)
   regionMatch: boolean; // 사용자 시도와 일치
   national: boolean; // 중앙부처/전국 혜택
+  otherCity: boolean; // 같은 도(道)지만 다른 시군구 전용 → 부적합(제외 대상)
   ageApplicable: boolean; // 사용자 연령에 적용 가능
   ageScoped: boolean; // 연령 제한이 있는 혜택
   dday: number | null; // 마감까지 남은 일수(null=상시)
@@ -284,6 +288,11 @@ export async function getHomeFeed(
     const sido = benefitSido(row);
     const national = sido === null;
     const regionMatch = national || (userSido != null && sido === userSido);
+    // 같은 도(道)라도 다른 시군구 전용 혜택(예: 고양 사용자에게 안성시 혜택)은 부적합.
+    // 도단위("경기도")·전국("보건복지부")은 시군구가 null이라 여기 안 걸린다.
+    const benefitSgg = benefitSigungu(row);
+    const otherCity =
+      benefitSgg !== null && userSigungu != null && !sigunguMatches(benefitSgg, userSigungu);
     const { applicable: ageApplicable, ageScoped } = benefitMatchesAge(row, householdStages);
     const dday = row.deadline
       ? Math.max(0, Math.ceil((new Date(row.deadline).getTime() - Date.now()) / 86400000))
@@ -300,14 +309,22 @@ export async function getHomeFeed(
       score += 5; // 내 가구 상황(한부모·다자녀·장애 등) 정조준
     }
     if (householdStages.length && ageScoped && ageApplicable) score += 3; // 가구 연령대 정조준
-    return { row, sido, regionMatch, national, ageApplicable, ageScoped, dday, score };
+    // 관심사와 안 겹치는 특정 직군·산업 전용 테마(농림축산어업 등)는 맨 아래로 강등.
+    if (
+      (row.themes ?? []).some((t) => SPECIALIZED_THEMES.has(t)) &&
+      themeOverlap(row.themes, profile.interests) === 0
+    ) {
+      score -= 2000;
+    }
+    return { row, sido, regionMatch, national, otherCity, ageApplicable, ageScoped, dday, score };
   });
 
   // 강한 규칙(완화 불가): 사용자 연령과 안 맞는 혜택, 자녀 없는 가구의 자녀 의존 혜택,
-  // 그리고 개인이 아닌 기업/법인 대상 사업(창업지원 등)은 절대 노출하지 않는다.
+  // 다른 시군구 전용 혜택, 그리고 개인이 아닌 기업/법인 대상 사업(창업지원 등)은 절대 노출하지 않는다.
   const eligible = evaluated.filter(
     (e) =>
       e.ageApplicable &&
+      !e.otherCity &&
       !(noChildren && isChildDependentBenefit(e.row)) &&
       !isEnterpriseTargetedBenefit(e.row),
   );
@@ -414,8 +431,13 @@ export async function getNotifications(userId: string): Promise<AppNotification[
       if (savedIds.includes(row.id)) continue;
       const sido = benefitSido(row);
       const regionOk = sido === null || userSido == null || sido === userSido;
+      const benefitSgg = benefitSigungu(row);
+      const otherCity =
+        benefitSgg !== null &&
+        profile.regionSigungu != null &&
+        !sigunguMatches(benefitSgg, profile.regionSigungu);
       const { applicable: ageOk } = benefitMatchesAge(row, householdStages);
-      if (!regionOk || !ageOk) continue;
+      if (!regionOk || otherCity || !ageOk) continue;
       if (noChildren && isChildDependentBenefit(row)) continue;
       notis.push({
         id: `new-${row.id}`,

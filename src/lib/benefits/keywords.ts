@@ -109,6 +109,45 @@ export function benefitSido(input: {
   );
 }
 
+// 시도(광역) 표기는 시군구가 아니다(서울특별시·부산광역시·세종특별자치시 등).
+const SIDO_LEVEL_RE = /(특별시|광역시|특별자치시|특별자치도)$/;
+
+/**
+ * 혜택이 특정 시·군·구를 대상으로 하는지 추출한다.
+ * gov24/복지로 데이터는 region_sigungu가 비어 있고 provider 텍스트(예: "경기도 안성시")가
+ * 유일한 단서인 경우가 많아, 텍스트에서 첫 시·군·구 토큰을 뽑는다.
+ * 제목은 오탐 우려가 있어 사용하지 않는다(지역 행정명만).
+ * @returns "안성시" 같은 시군구명, 또는 도단위/전국이면 null
+ */
+export function benefitSigungu(input: {
+  provider?: string | null;
+  region_sigungu?: string | null;
+  region_scope?: string | null;
+}): string | null {
+  const text = `${input.region_sigungu ?? ""} ${input.provider ?? ""} ${input.region_scope ?? ""}`;
+  const tokens = text.match(/[가-힣]{2,}?(?:시|군|구)/g) ?? [];
+  for (const t of tokens) {
+    if (SIDO_LEVEL_RE.test(t)) continue; // 시도 단위는 제외
+    return t;
+  }
+  return null;
+}
+
+/** 두 시군구 표기가 같은 시/군을 가리키는지 (자치구 차이는 무시: "고양시 덕양구" ↔ "고양시"). */
+export function sigunguMatches(
+  a: string | null | undefined,
+  b: string | null | undefined,
+): boolean {
+  if (!a || !b) return false;
+  const core = (s: string) => (s.match(/[가-힣]{2,}?(?:시|군)/) ?? [s])[0];
+  const ca = core(a);
+  const cb = core(b);
+  return ca === cb || a.includes(cb) || b.includes(ca);
+}
+
+/** 특정 직군·산업 종사자 전용 테마 — 관심사와 안 겹치면 일반 홈 추천에서 강등한다. */
+export const SPECIALIZED_THEMES = new Set(["농림축산어업"]);
+
 // 미성년 자녀가 있어야 받을 수 있는 혜택(입학·교복·보육 등)을 식별하는 마커.
 // gov24 데이터는 이런 혜택의 life_stages를 비워 두는 경우가 많아 텍스트로 보강한다.
 const CHILD_DEPENDENT_RE =
